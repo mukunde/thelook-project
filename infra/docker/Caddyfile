@@ -1,0 +1,45 @@
+# Caddy v2 configuration — TLS is automatic via Let's Encrypt (HTTP-01 ACME).
+#
+# Dagster is protected by basic auth (read-only exposure).
+# Metabase is proxied without additional auth: its own authentication covers
+# admin routes, and public dashboards rely on Metabase's own anonymous-share
+# mechanism.
+
+{
+    email {$ACME_EMAIL}
+    # Uncomment for the Let's Encrypt staging endpoint while testing:
+    # acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+{$DAGSTER_DOMAIN} {
+    encode gzip zstd
+
+    # Basic auth for the UI — credentials live in .env.
+    # DAGSTER_BASIC_AUTH_HASH is a bcrypt hash generated via:
+    #   docker run --rm caddy:2 caddy hash-password --plaintext 'yourpassword'
+    basicauth {
+        {$DAGSTER_BASIC_AUTH_USER} {$DAGSTER_BASIC_AUTH_HASH}
+    }
+
+    reverse_proxy dagster-webserver:3000
+
+    # Basic hardening headers.
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+
+{$METABASE_DOMAIN} {
+    encode gzip zstd
+
+    reverse_proxy metabase:3000
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}

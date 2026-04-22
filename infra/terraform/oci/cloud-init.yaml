@@ -1,0 +1,73 @@
+#cloud-config
+# Bootstrap for the OCI ARM A1 VM hosting the always-on platform.
+# Applied once on first boot — subsequent changes happen over Bastion SSH.
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - fail2ban
+  - unattended-upgrades
+  - rsync
+  - git
+
+users:
+  - name: deploy
+    groups: [sudo, docker]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    # SSH keys for `deploy` are deployed via OCI Bastion sessions at first login,
+    # not baked into the image.
+
+write_files:
+  # Enable unattended security upgrades on a daily schedule.
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::AutocleanInterval "7";
+
+  # Open 80/443 at the OS firewall level (iptables) in addition to the
+  # security list. Defence in depth.
+  - path: /etc/iptables/rules.v4
+    permissions: "0644"
+    content: |
+      *filter
+      :INPUT DROP [0:0]
+      :FORWARD DROP [0:0]
+      :OUTPUT ACCEPT [0:0]
+      -A INPUT -i lo -j ACCEPT
+      -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+      -A INPUT -p tcp --dport 80 -j ACCEPT
+      -A INPUT -p tcp --dport 443 -j ACCEPT
+      COMMIT
+
+runcmd:
+  # ── Docker Engine + Compose plugin ─────────────────────────
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - |
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+    https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" \
+    | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - systemctl enable --now docker
+
+  # ── fail2ban ──────────────────────────────────────────────
+  - systemctl enable --now fail2ban
+
+  # ── Persist iptables rules on reboot ──────────────────────
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent
+  - iptables-restore < /etc/iptables/rules.v4
+
+  # ── Create deploy workspace ───────────────────────────────
+  - mkdir -p /opt/thelook
+  - chown deploy:deploy /opt/thelook
+
+final_message: "Bootstrap complete. Access via OCI Bastion, then clone the Docker Compose stack into /opt/thelook."

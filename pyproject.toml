@@ -1,0 +1,78 @@
+[project]
+name = "thelook-mds"
+version = "0.1.0"
+description = "TheLook modern data stack — Python-first, IaC, self-hosted"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "TheLook MDS contributors" }]
+
+# Application dependencies (dlt, dbt, dagster, cube-py, etc.) are pinned inside
+# their respective sub-projects once those land. This root project carries only
+# the tooling shared across the monorepo.
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "ruff>=0.6.0",
+  "mypy>=1.11.0",
+  "pytest>=8.3.0",
+  "pytest-cov>=5.0.0",
+  "pre-commit>=4.0.0",
+]
+
+[tool.uv]
+# Keep lockfile in the repo for reproducible CI
+package = false
+
+# ──────────────────────────────────────────────────────────
+# Ruff — linter + formatter
+# ──────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["**/target/", "**/.terraform/", "**/dbt_packages/"]
+
+[tool.ruff.lint]
+select = [
+  "E",    # pycodestyle errors
+  "W",    # pycodestyle warnings
+  "F",    # pyflakes
+  "I",    # isort
+  "B",    # flake8-bugbear
+  "UP",   # pyupgrade
+  "SIM",  # flake8-simplify
+  "RUF",  # ruff-specific
+]
+ignore = [
+  "E501", # line length handled by formatter
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ──────────────────────────────────────────────────────────
+# mypy — static type checking
+# ──────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+exclude = [
+  "^target/",
+  "^\\.terraform/",
+  "^dbt_packages/",
+]
+
+# ──────────────────────────────────────────────────────────
+# pytest
+# ──────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+  "-ra",
+  "--strict-markers",
+  "--strict-config",
+]

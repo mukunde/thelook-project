@@ -1,0 +1,14 @@
+# Copy to terraform.tfvars and fill in your values.
+# terraform.tfvars is git-ignored; this file is safe to commit.
+
+tenancy_ocid      = "ocid1.tenancy.oc1..<unique_id>"
+user_ocid         = "ocid1.user.oc1..<unique_id>"
+fingerprint       = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+private_key_path  = "~/.oci/oci_api_key.pem"
+region            = "eu-frankfurt-1"
+compartment_ocid  = "ocid1.compartment.oc1..<unique_id>"
+ssh_public_key    = "ssh-ed25519 AAAA... user@machine"
+vm_shape          = "VM.Standard.A1.Flex"
+vm_ocpus          = 4
+vm_memory_gb      = 24
+vm_boot_volume_gb = 200

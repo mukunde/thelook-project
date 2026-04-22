@@ -1,0 +1,24 @@
+# Copy to terraform.tfvars and fill in your values.
+# terraform.tfvars is git-ignored; this file is safe to commit.
+#
+# The Snowflake private key itself MUST NOT live in terraform.tfvars. Pass it
+# via a Terraform Cloud sensitive workspace variable (preferred) or via the
+# TF_VAR_snowflake_private_key environment variable for local runs. The
+# variables below are non-sensitive project configuration only.
+
+snowflake_organization_name = "MYORG"
+snowflake_account_name      = "MYACCOUNT"
+snowflake_user              = "TF_SERVICE_ACCOUNT"
+snowflake_role              = "SYSADMIN"
+project_tag                 = "thelook"
+
+# snowflake_private_key — NOT SET HERE
+# Set one of:
+#   - TFC workspace variable (sensitive):  snowflake_private_key
+#   - Local env var:                       TF_VAR_snowflake_private_key="$(cat ~/.snowflake/tf_svc.p8)"
+#
+# Generate the key-pair once with:
+#   openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out tf_svc.p8 -nocrypt
+#   openssl rsa -in tf_svc.p8 -pubout -out tf_svc.pub
+# Register the public key on the Snowflake user with:
+#   ALTER USER TF_SERVICE_ACCOUNT SET RSA_PUBLIC_KEY='<contents of tf_svc.pub without header/footer>';

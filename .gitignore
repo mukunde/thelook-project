@@ -1,0 +1,168 @@
+# ─── Python ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# uv
+.uv/
+
+# pytest
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+
+# mypy / ruff
+.mypy_cache/
+.ruff_cache/
+
+# ─── Terraform ───────────────────────────────────────────
+# Local state (remote state lives on Terraform Cloud)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Plan output & crash logs
+*.tfplan
+crash.log
+crash.*.log
+
+# Provider binaries & lockfile for init
+.terraform/
+.terraform.lock.hcl
+
+# Per-environment tfvars (checked in only as .example)
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Terraform override files (local-only, never committed)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# User-level Terraform config
+.terraformrc
+terraform.rc
+
+# ─── Secrets & credentials ───────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+.dlt/secrets.toml
+profiles.yml
+
+# GCP / BigQuery service accounts (source dlt)
+credentials.json
+service-account*.json
+gcp-*.json
+*-service-account.json
+
+# Snowflake key-pair authentication
+*.p8
+*.pk8
+rsa_key*
+snowflake_key*
+
+# Generic secrets directories
+secrets/
+.secrets/
+
+# ─── dbt ─────────────────────────────────────────────────
+target/
+dbt_packages/
+logs/
+dbt_modules/
+
+# ─── Dagster ─────────────────────────────────────────────
+dagster_home/
+.dagster/
+*.sqlite
+*.sqlite3
+*.db
+schedules.db
+event_logs.db
+runs.db
+
+# ─── dlt (pipeline state) ────────────────────────────────
+.dlt/pipelines/
+.dlt/logs/
+*.dlt_state.json
+
+# ─── Cube Core (if self-hosted) ──────────────────────────
+.cubestore/
+.cubecloud/
+
+# ─── Evidence.dev ────────────────────────────────────────
+.evidence/
+static/data/
+sources/.cache/
+
+# ─── Elementary (phase 2) ────────────────────────────────
+edr_target/
+
+# ─── Docker ──────────────────────────────────────────────
+# Data volumes mounted locally (never commit)
+data/
+volumes/
+
+# Local docker-compose overrides (dev-only, never commit)
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# ─── Node.js (Evidence.dev, Cube Core) ───────────────────
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+.npm/
+
+# ─── IDE / editors ───────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── Build artifacts ─────────────────────────────────────
+build/
+dist/
+*.egg-info/
+.next/
+.vercel
+
+# ─── Jupyter ─────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ─── Personal notes / planning ───────────────────────────
+docs/TODO/
+
+# ─── direnv ──────────────────────────────────────────────
+.envrc
+.direnv/
+
+# ─── Generic logs & temp files ───────────────────────────
+*.log
+tmp/
+temp/
+.cache/
+*.tmp
+*.bak
+*.orig

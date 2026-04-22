@@ -1,0 +1,11 @@
+# Dagster workspace — code locations
+# Uncomment and extend as code modules land under ingestion/, orchestration/, etc.
+
+load_from:
+  []
+
+# Example (once ingestion/ exists):
+# load_from:
+#   - python_package:
+#       package_name: ingestion
+#       location_name: ingestion
