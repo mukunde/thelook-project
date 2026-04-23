@@ -20,6 +20,7 @@ resource "snowflake_warehouse" "ingestion" {
   auto_suspend        = local.warehouse_defaults.auto_suspend
   auto_resume         = local.warehouse_defaults.auto_resume
   initially_suspended = local.warehouse_defaults.initially_suspended
+  resource_monitor    = snowflake_resource_monitor.project_budget.name
 }
 
 resource "snowflake_warehouse" "transform" {
@@ -29,6 +30,7 @@ resource "snowflake_warehouse" "transform" {
   auto_suspend        = local.warehouse_defaults.auto_suspend
   auto_resume         = local.warehouse_defaults.auto_resume
   initially_suspended = local.warehouse_defaults.initially_suspended
+  resource_monitor    = snowflake_resource_monitor.project_budget.name
 }
 
 resource "snowflake_warehouse" "consumer" {
@@ -38,4 +40,5 @@ resource "snowflake_warehouse" "consumer" {
   auto_suspend        = local.warehouse_defaults.auto_suspend
   auto_resume         = local.warehouse_defaults.auto_resume
   initially_suspended = local.warehouse_defaults.initially_suspended
+  resource_monitor    = snowflake_resource_monitor.project_budget.name
 }
