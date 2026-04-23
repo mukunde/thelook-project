@@ -17,8 +17,13 @@ variable "fingerprint" {
   type        = string
 }
 
-variable "private_key_path" {
-  description = "Path to the PEM private key on the machine running Terraform."
+variable "private_key" {
+  description = <<-EOT
+    PEM-encoded private key content for the OCI user (API key).
+    Passed as content (not a path) so it works in Terraform Cloud remote runs.
+    For local runs, set via env var:  TF_VAR_private_key="$(cat ~/.oci/oci_api_key.pem)"
+    For TFC runs, set as a sensitive workspace variable.
+  EOT
   type        = string
   sensitive   = true
 }
