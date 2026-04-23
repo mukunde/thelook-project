@@ -69,7 +69,21 @@ resource "oci_core_security_list" "public" {
     }
   }
 
-  # Port 22 is intentionally NOT opened. SSH is accessed via OCI Bastion only.
+  # Inbound: SSH — restricted to intra-VCN traffic.
+  # This is how OCI Bastion reaches the VM: it provisions endpoints inside
+  # `oci_core_subnet.public` and SSHs to the VM's private IP. Port 22 is
+  # NEVER reachable from the public internet.
+  ingress_security_rules {
+    source      = oci_core_vcn.main.cidr_blocks[0]
+    source_type = "CIDR_BLOCK"
+    protocol    = "6" # TCP
+    stateless   = false
+
+    tcp_options {
+      min = 22
+      max = 22
+    }
+  }
 }
 
 resource "oci_core_subnet" "public" {

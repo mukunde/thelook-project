@@ -7,4 +7,14 @@ output "vm_public_ip" {
   value       = oci_core_public_ip.vm.ip_address
 }
 
-# TODO: add bastion FQDN and object storage namespace outputs.
+output "vm_instance_ocid" {
+  description = "OCID of the VM. Needed to open bastion sessions."
+  value       = oci_core_instance.vm.id
+}
+
+output "bastion_ocid" {
+  description = "OCID of the bastion. Pass this to `oci bastion session create-managed-ssh`."
+  value       = oci_bastion_bastion.main.id
+}
+
+# TODO: add object storage namespace output once storage.tf is activated.
