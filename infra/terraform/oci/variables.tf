@@ -51,15 +51,28 @@ variable "vm_shape" {
 }
 
 variable "vm_ocpus" {
-  description = "Number of OCPUs allocated to the VM (max 4 on Always Free)."
+  description = <<-EOT
+    Number of OCPUs allocated to the VM. Always Free caps at 4 total across
+    all A1.Flex VMs in the tenancy. Lowered from 4 to 2 in 2026-04 because
+    eu-paris-1 consistently returned `Out of host capacity` for the 4/24
+    shape; smaller A1 shapes are generally available when the larger one is
+    not. 2 OCPUs is sufficient for Dagster OSS + a few auxiliary containers
+    at this project stage; raise back to 4 once capacity returns and the
+    platform is under load.
+  EOT
   type        = number
-  default     = 4
+  default     = 2
 }
 
 variable "vm_memory_gb" {
-  description = "Memory in GB allocated to the VM (max 24 on Always Free)."
+  description = <<-EOT
+    Memory in GB allocated to the VM. Always Free caps at 24 GB total across
+    all A1.Flex VMs in the tenancy. Lowered from 24 to 12 alongside vm_ocpus
+    for the same A1-capacity reason; the 2-OCPU / 12-GB ratio matches the
+    A1.Flex guideline of 6 GB per OCPU.
+  EOT
   type        = number
-  default     = 24
+  default     = 12
 }
 
 variable "vm_boot_volume_gb" {
