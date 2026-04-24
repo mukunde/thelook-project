@@ -27,8 +27,10 @@
 #       snowflake_role        = ROLE_TERRAFORM
 #       snowflake_private_key = <new .p8 content>
 #   - Run `terraform plan` → must return `0 to add, 0 to change, 0 to destroy`.
-#   - Disable admin_bootstrap:
-#       ALTER USER <admin_bootstrap> SET DISABLED = TRUE;
+#   - admin_bootstrap is intentionally retained as a break-glass ACCOUNTADMIN
+#     identity with compensating controls (MFA, strong password, no
+#     programmatic use). See docs/ADR/0008-admin-bootstrap-retained-as-
+#     break-glass.md for the rationale and mitigations.
 # ─────────────────────────────────────────────────────────────
 
 # ─── Input ─────────────────────────────────────────────────
