@@ -6,12 +6,20 @@
 # ACCOUNTADMIN):
 #
 #   1. ROLE_TERRAFORM exists with SYSADMIN + USERADMIN + SECURITYADMIN
-#      privileges inherited, plus MODIFY ON ACCOUNT for resource monitors.
+#      privileges inherited.
 #   2. USER_TERRAFORM exists with key-pair auth and ROLE_TERRAFORM as
 #      default role.
 #   3. Ownership of every module-managed object is transferred from
 #      ACCOUNTADMIN to ROLE_TERRAFORM, so subsequent applies as
 #      USER_TERRAFORM have the rights to modify them.
+#
+# About the resource monitor:
+#   Snowflake does not expose an account-level privilege that allows a
+#   custom role to create or modify resource monitors. The only way for
+#   ROLE_TERRAFORM to manage THELOOK_MONTHLY_BUDGET is to own it directly
+#   (OWNERSHIP includes MODIFY). Ownership transfer is handled below.
+#   If we ever need to create a NEW resource monitor, the module will
+#   need to be applied as ACCOUNTADMIN for that single resource.
 #
 # Post-apply rotation (outside Terraform):
 #   - Update the TFC workspace variables:
@@ -41,7 +49,7 @@ variable "user_terraform_public_key" {
 
 resource "snowflake_account_role" "terraform" {
   name    = "ROLE_TERRAFORM"
-  comment = "[${var.project_tag}] Owned by Terraform. Inherits SYSADMIN + USERADMIN + SECURITYADMIN + MODIFY ON ACCOUNT."
+  comment = "[${var.project_tag}] Owned by Terraform. Inherits SYSADMIN + USERADMIN + SECURITYADMIN; owns THELOOK_MONTHLY_BUDGET resource monitor."
 }
 
 # ─── Role inheritance (grant admin roles INTO ROLE_TERRAFORM) ─────
@@ -59,14 +67,6 @@ resource "snowflake_grant_account_role" "terraform_inherits_useradmin" {
 resource "snowflake_grant_account_role" "terraform_inherits_securityadmin" {
   role_name        = "SECURITYADMIN"
   parent_role_name = snowflake_account_role.terraform.name
-}
-
-# MODIFY on ACCOUNT enables creation/alteration of resource monitors,
-# which is otherwise ACCOUNTADMIN-only.
-resource "snowflake_grant_privileges_to_account_role" "terraform_account_modify" {
-  account_role_name = snowflake_account_role.terraform.name
-  privileges        = ["MODIFY"]
-  on_account        = true
 }
 
 # ─── User ──────────────────────────────────────────────────
@@ -173,11 +173,13 @@ resource "snowflake_grant_ownership" "terraform_owns_users" {
   }
 }
 
-# Resource monitor ownership is a special case: Snowflake's default
-# policy restricts RM operations to ACCOUNTADMIN. The MODIFY ON ACCOUNT
-# grant above gives ROLE_TERRAFORM the right to manage RMs. If ownership
-# transfer on this object type fails at apply time, a fallback is to
-# remove this block and manage the RM manually as ACCOUNTADMIN.
+# Resource monitor ownership is a special case: Snowflake restricts RM
+# operations to ACCOUNTADMIN unless the role owns the specific RM.
+# Transferring ownership here gives ROLE_TERRAFORM the right to MODIFY
+# this particular RM in subsequent applies.
+#
+# Limitation: creating a NEW resource monitor still requires ACCOUNTADMIN.
+# For this single-RM module, that's an acceptable trade-off.
 resource "snowflake_grant_ownership" "terraform_owns_resource_monitor" {
   account_role_name   = snowflake_account_role.terraform.name
   outbound_privileges = "COPY"
