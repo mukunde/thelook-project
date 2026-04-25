@@ -31,8 +31,11 @@ write_files:
       APT::Periodic::Unattended-Upgrade "1";
       APT::Periodic::AutocleanInterval "7";
 
-  # Open 80/443 at the OS firewall level (iptables) in addition to the
-  # security list. Defence in depth.
+  # Open SSH (22), HTTP (80), and HTTPS (443) at the OS firewall level
+  # (iptables) in addition to the security list. Defence in depth.
+  # Port 22 is required for OCI Bastion port-forwarding sessions to reach
+  # sshd; without it the default INPUT DROP silently blocks SSH and the
+  # bastion tunnel appears to "close immediately".
   - path: /etc/iptables/rules.v4
     permissions: "0644"
     content: |
@@ -42,6 +45,7 @@ write_files:
       :OUTPUT ACCEPT [0:0]
       -A INPUT -i lo -j ACCEPT
       -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+      -A INPUT -p tcp --dport 22 -j ACCEPT
       -A INPUT -p tcp --dport 80 -j ACCEPT
       -A INPUT -p tcp --dport 443 -j ACCEPT
       COMMIT
