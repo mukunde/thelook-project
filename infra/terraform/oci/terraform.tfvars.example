@@ -17,6 +17,11 @@ vm_ocpus          = 2
 vm_memory_gb      = 12
 vm_boot_volume_gb = 200
 
+# Cost guardrails (see ADR-0009)
+cost_alert_email     = "you@example.com"
+cost_budget_amount   = 1
+cost_budget_currency = "EUR"
+
 # private_key — NOT SET HERE
 # Set one of:
 #   - TFC workspace variable (sensitive): private_key
