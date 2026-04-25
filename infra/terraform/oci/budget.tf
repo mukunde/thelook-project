@@ -19,6 +19,12 @@
 # ─────────────────────────────────────────────────────────────
 
 resource "oci_budget_budget" "always_free_canary" {
+  # Budgets are tenancy-level operations and OCI only allows them against
+  # the home region. Pin this resource to the oci.home aliased provider so
+  # it works regardless of var.region. The same applies to every alert rule
+  # below — they are children of the budget and must use the same provider.
+  provider = oci.home
+
   # Budgets at the tenancy root capture spend across ALL compartments,
   # including ones that may be created later outside this Terraform module.
   compartment_id = var.tenancy_ocid
@@ -51,6 +57,7 @@ resource "oci_budget_budget" "always_free_canary" {
 #                  PayG cap raised intentionally.
 
 resource "oci_budget_alert_rule" "forecast_50pct" {
+  provider     = oci.home
   budget_id    = oci_budget_budget.always_free_canary.id
   display_name = "thelook-forecast-50pct"
   description  = "Forward-looking warning: month-end forecast crosses 50% of the cap."
@@ -64,6 +71,7 @@ resource "oci_budget_alert_rule" "forecast_50pct" {
 }
 
 resource "oci_budget_alert_rule" "actual_1pct" {
+  provider     = oci.home
   budget_id    = oci_budget_budget.always_free_canary.id
   display_name = "thelook-actual-1pct"
   description  = "Canary: any non-zero actual spend (~$0.01)."
@@ -77,6 +85,7 @@ resource "oci_budget_alert_rule" "actual_1pct" {
 }
 
 resource "oci_budget_alert_rule" "actual_10pct" {
+  provider     = oci.home
   budget_id    = oci_budget_budget.always_free_canary.id
   display_name = "thelook-actual-10pct"
   description  = "Confirmation that the 1% canary is not a transient billing artefact."
@@ -90,6 +99,7 @@ resource "oci_budget_alert_rule" "actual_10pct" {
 }
 
 resource "oci_budget_alert_rule" "actual_50pct" {
+  provider     = oci.home
   budget_id    = oci_budget_budget.always_free_canary.id
   display_name = "thelook-actual-50pct"
   description  = "Escalation threshold."
@@ -103,6 +113,7 @@ resource "oci_budget_alert_rule" "actual_50pct" {
 }
 
 resource "oci_budget_alert_rule" "actual_100pct" {
+  provider     = oci.home
   budget_id    = oci_budget_budget.always_free_canary.id
   display_name = "thelook-actual-100pct"
   description  = "Full breach of the cap."

@@ -70,8 +70,12 @@ resource "oci_core_instance" "vm" {
   }
 
   create_vnic_details {
-    subnet_id        = oci_core_subnet.public.id
-    assign_public_ip = true
+    subnet_id = oci_core_subnet.public.id
+    # No ephemeral public IP — the Reserved IP managed by oci_core_public_ip.vm
+    # is the sole public address for this VNIC. Setting this to true conflicts
+    # with the Reserved IP attachment because OCI rejects two public IPs on
+    # the same private IP (409-Conflict).
+    assign_public_ip = false
     hostname_label   = "thelook"
   }
 

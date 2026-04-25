@@ -31,6 +31,11 @@
 # ─────────────────────────────────────────────────────────────
 
 resource "oci_limits_quota" "always_free_only" {
+  # Quotas are tenancy-level operations and OCI only allows them against the
+  # home region. Pin this resource to the oci.home aliased provider so it
+  # works regardless of var.region (which drives compute/networking).
+  provider = oci.home
+
   # Quotas are scoped to the tenancy root; pass tenancy_ocid as compartment_id.
   compartment_id = var.tenancy_ocid
   name           = "thelook-always-free-only"

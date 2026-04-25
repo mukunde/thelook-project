@@ -35,9 +35,22 @@ variable "private_key" {
 }
 
 variable "region" {
-  description = "OCI region. Prefer regions with ARM A1 availability (e.g. eu-frankfurt-1)."
+  description = "OCI region for compute, networking, and other regional resources. Prefer regions with ARM A1 availability (e.g. eu-frankfurt-1)."
   type        = string
   default     = "eu-frankfurt-1"
+}
+
+variable "home_region" {
+  description = <<-EOT
+    Home region of the OCI tenancy (immutable, set at tenancy creation).
+    Tenancy-level operations — quotas (oci_limits_quota), budgets
+    (oci_budget_*), IAM domains, compartments, tag namespaces — can ONLY be
+    executed against the home region. The `oci.home` provider alias in
+    main.tf uses this value to route those operations to the right
+    endpoint, regardless of `var.region` for regional resources.
+  EOT
+  type        = string
+  default     = "eu-paris-1"
 }
 
 variable "compartment_ocid" {
