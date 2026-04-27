@@ -1,77 +1,20 @@
 #cloud-config
-# Bootstrap for the OCI ARM A1 VM hosting the always-on platform.
-# Applied once on first boot — subsequent changes happen over Bastion SSH.
+# DEBUG VERSION — minimal cloud-init to validate SSH via OCI Bastion.
+# Once SSH is confirmed working, additional bootstrap (Docker, fail2ban,
+# iptables, package_upgrade, deploy user) is re-introduced incrementally
+# in separate commits so any regression is immediately bisectable.
+#
+# This file is intentionally minimal:
+#   - No package_upgrade (apt-get upgrade can take 5+ min on ARM)
+#   - No iptables (default Ubuntu = INPUT ACCEPT, SSH naturally reachable)
+#   - No Docker (re-added in a follow-up commit)
+#   - No fail2ban (re-added in a follow-up commit)
+#   - No deploy user (re-added in a follow-up commit)
+#
+# The only thing this does: nothing. Ubuntu image already has sshd
+# configured for the `ubuntu` user with the SSH key from var.ssh_public_key
+# (injected via OCI metadata.ssh_authorized_keys, not via cloud-init).
+#
+# Expected boot time before sshd is reachable: ~30s.
 
-package_update: true
-package_upgrade: true
-
-packages:
-  - ca-certificates
-  - curl
-  - gnupg
-  - lsb-release
-  - fail2ban
-  - unattended-upgrades
-  - rsync
-  - git
-
-users:
-  - name: deploy
-    groups: [sudo, docker]
-    shell: /bin/bash
-    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
-    # SSH keys for `deploy` are deployed via OCI Bastion sessions at first login,
-    # not baked into the image.
-
-write_files:
-  # Enable unattended security upgrades on a daily schedule.
-  - path: /etc/apt/apt.conf.d/20auto-upgrades
-    content: |
-      APT::Periodic::Update-Package-Lists "1";
-      APT::Periodic::Unattended-Upgrade "1";
-      APT::Periodic::AutocleanInterval "7";
-
-  # Open SSH (22), HTTP (80), and HTTPS (443) at the OS firewall level
-  # (iptables) in addition to the security list. Defence in depth.
-  # Port 22 is required for OCI Bastion port-forwarding sessions to reach
-  # sshd; without it the default INPUT DROP silently blocks SSH and the
-  # bastion tunnel appears to "close immediately".
-  - path: /etc/iptables/rules.v4
-    permissions: "0644"
-    content: |
-      *filter
-      :INPUT DROP [0:0]
-      :FORWARD DROP [0:0]
-      :OUTPUT ACCEPT [0:0]
-      -A INPUT -i lo -j ACCEPT
-      -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-      -A INPUT -p tcp --dport 22 -j ACCEPT
-      -A INPUT -p tcp --dport 80 -j ACCEPT
-      -A INPUT -p tcp --dport 443 -j ACCEPT
-      COMMIT
-
-runcmd:
-  # ── Docker Engine + Compose plugin ─────────────────────────
-  - install -m 0755 -d /etc/apt/keyrings
-  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-  - chmod a+r /etc/apt/keyrings/docker.asc
-  - |
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
-    https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" \
-    | tee /etc/apt/sources.list.d/docker.list > /dev/null
-  - apt-get update
-  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-  - systemctl enable --now docker
-
-  # ── fail2ban ──────────────────────────────────────────────
-  - systemctl enable --now fail2ban
-
-  # ── Persist iptables rules on reboot ──────────────────────
-  - DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent
-  - iptables-restore < /etc/iptables/rules.v4
-
-  # ── Create deploy workspace ───────────────────────────────
-  - mkdir -p /opt/thelook
-  - chown deploy:deploy /opt/thelook
-
-final_message: "Bootstrap complete. Access via OCI Bastion, then clone the Docker Compose stack into /opt/thelook."
+final_message: "Minimal bootstrap complete. SSH should be reachable as ubuntu@<vm>."
