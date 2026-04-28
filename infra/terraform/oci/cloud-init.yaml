@@ -28,6 +28,12 @@ packages:
   - git
 
 users:
+  # `- default` MUST be present, otherwise cloud-init REPLACES the
+  # distribution default user list (which includes `ubuntu` on the OCI
+  # Ubuntu image) with whatever follows. Without it, the `ubuntu` user
+  # is never created and `metadata.ssh_authorized_keys` (set in
+  # compute.tf) has no target — SSH then fails with "Permission denied".
+  - default
   - name: deploy
     groups: [sudo, docker]
     shell: /bin/bash
