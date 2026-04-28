@@ -1,20 +1,22 @@
-# TheLook — Modern Data Stack (Python-First, IaC, Self-Hosted)
+# TheLook Modern Data Stack (Python-First, IaC, Self-Hosted)
 
 > A hands-on modern data stack built around the public [TheLook eCommerce](https://console.cloud.google.com/marketplace/product/bigquery-public-data/thelook-ecommerce) dataset. Snowflake as the single analytic engine, Dagster + Metabase running always-on on OCI Free Tier, the whole platform declared via Terraform.
 
-**Status:** Scaffolding. The core layout (`infra/`, `docs/adr/`, `.github/workflows/`) is in place; application code (ingestion, transformation, orchestration, BI) lands in subsequent iterations.
+**Status:** Phase 1 (Infrastructure & Governance) closed. Snowflake RBAC, OCI VM, Terraform Cloud workflows, and 10 ADRs are in place. See [`docs/infrastructure-and-governance-phase-report.md`](docs/infrastructure-and-governance-phase-report.md). Phase 2 (data engineering: ingestion, transformation, semantic layer, BI) is in progress.
 
 ---
 
 ## Live surfaces
 
+The following surfaces are produced by Phase 2. Phase 1 delivered the platform underneath (Snowflake RBAC, OCI VM, Terraform Cloud workflows, cost guardrails) but does not expose end-user surfaces.
+
 | Surface | URL | Availability |
 |---|---|---|
-| Dagster UI | `https://dagster.tondomaine.dev` | Always-on (OCI) — *not yet deployed* |
-| Metabase | `https://metabase.tondomaine.dev` | Always-on (OCI) — *not yet deployed* |
-| Evidence.dev dashboard | `https://<project>.vercel.app` | Always-on (Vercel, static) — *not yet deployed* |
-| dbt docs | `https://<user>.github.io/<repo>/` | GitHub Pages — *not yet deployed* |
-| Walk-through video | Loom link | *not yet recorded* |
+| Dagster UI | `https://dagster.tondomaine.dev` | Always-on (OCI), Phase 2 |
+| Metabase | `https://metabase.tondomaine.dev` | Always-on (OCI), Phase 2 |
+| Evidence.dev dashboard | `https://<project>.vercel.app` | Always-on (Vercel, static), Phase 2 |
+| dbt docs | `https://<user>.github.io/<repo>/` | GitHub Pages, Phase 2 |
+| Walk-through video | Loom link | Phase 2 |
 
 ---
 
@@ -50,9 +52,9 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Ver
 
 - **Python-first** for all code (ingestion, orchestration, analytical notebooks).
 - **Infrastructure-as-Code** for everything provisionable — Snowflake warehouses and RBAC are declared with the same discipline as the OCI VM.
-- **Single analytic engine** — Snowflake, no DuckDB mirror, no ADB fallback. See [ADR-0006](docs/adr/0006-single-analytic-engine-snowflake.md).
+- **Single analytic engine** — Snowflake, no DuckDB mirror, no ADB fallback. See [ADR-0006](docs/ADR/0006-single-analytic-engine-snowflake.md).
 - **Always-on platform, demo-on-demand warehouse** — Dagster + Metabase run permanently on OCI Free Tier at €0; Snowflake is `terraform apply`-ed for active periods and `terraform destroy`-ed afterwards.
-- **Documented decisions** — [six ADRs](docs/adr/) capture the structuring choices with their trade-offs.
+- **Documented decisions** — [ten ADRs](docs/ADR/) capture the structuring choices with their trade-offs, plus a [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md) consolidating the infrastructure and governance work.
 
 ## Stack at a glance
 
@@ -60,7 +62,7 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Ver
 |---|---|---|---|
 | Source | BigQuery (TheLook) | GCP | €0 |
 | Ingestion | dlt | Dagster on OCI | €0 |
-| Warehouse | Snowflake | Cloud, demo-on-demand | €0 to ~€10/demo period |
+| Warehouse | Snowflake on AWS | Cloud, demo-on-demand | €0 during 30-day trial, capped at 10 credits/month if upgraded (resource monitor) |
 | Transformation | dbt Core | Dagster on OCI + CI | €0 |
 | Semantic layer | Cube Cloud (dev) | SaaS Free | €0 |
 | Orchestration | Dagster OSS | OCI VM, always-on | €0 |
@@ -75,22 +77,22 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Ver
 
 ```
 .
-├── README.md                     ← this file
+├── README.md                                      ← this file
 ├── LICENSE
-├── pyproject.toml                ← root Python tooling (ruff, mypy, pytest) via uv
+├── pyproject.toml                                 ← root Python tooling (ruff, mypy, pytest) via uv
 ├── .gitignore
 ├── docs/
-│   └── adr/                      ← Architecture Decision Records (ADR-0001 to 0006)
+│   ├── ADR/                                       ← Architecture Decision Records (ADR-0000 to 0009)
+│   └── infrastructure-and-governance-phase-report.md   ← Phase 1 closure report
 ├── infra/
-│   ├── terraform/
-│   │   ├── snowflake/            ← databases, warehouses, roles, grants, users
-│   │   └── oci/                  ← VCN, VM Ampere A1, Bastion, Object Storage
-│   └── docker/                   ← docker-compose stack for the OCI VM
+│   └── terraform/
+│       ├── snowflake/                             ← databases, warehouses, roles, grants, users
+│       └── oci/                                   ← VCN, VM Ampere A1, Bastion, quotas, budget
 └── .github/
-    └── workflows/                ← Python CI, Terraform CI
+    └── workflows/                                 ← Python CI, Terraform CI
 ```
 
-Later iterations add `ingestion/` (dlt), `transformation/` (dbt), `orchestration/` (Dagster), `semantic/` (Cube), `bi/` (Evidence), `notebooks/`.
+Phase 2 will add `ingestion/` (dlt), `transformation/` (dbt), `orchestration/` (Dagster), `semantic/` (Cube), `bi/` (Evidence), `notebooks/`, and `infra/docker/` (Docker Compose stack for the OCI VM).
 
 ## Getting started
 
@@ -98,8 +100,8 @@ Later iterations add `ingestion/` (dlt), `transformation/` (dbt), `orchestration
 
 - [Terraform](https://developer.hashicorp.com/terraform/install) ≥ 1.6
 - [uv](https://docs.astral.sh/uv/) for the Python toolchain
-- A Snowflake account (trial or pay-as-you-go)
-- An OCI Always Free account with the `oci-cli` configured
+- A Snowflake account (30-day trial or paid plan; resource monitor caps usage at 10 credits/month)
+- An OCI account with the `oci-cli` configured (Free Trial sufficient initially; Pay-As-You-Go required to subscribe additional regions, see [ADR-0009](docs/ADR/0009-oci-payg-with-cost-guardrails.md))
 - A Terraform Cloud Free account with a workspace per module
 
 ### Install Python tooling
@@ -170,12 +172,22 @@ Metabase dashboards keep their last-successful-query results cached, so the live
 
 | ADR | Decision |
 |---|---|
-| [ADR-0001](docs/adr/0001-ingestion-dlt-vs-airbyte.md) | Ingestion with dlt over Airbyte |
-| [ADR-0002](docs/adr/0002-orchestration-dagster-vs-airflow.md) | Orchestration with Dagster OSS over Airflow |
-| [ADR-0003](docs/adr/0003-bi-evidence-metabase-vs-power-bi.md) | BI with Evidence.dev + Metabase, not Power BI / Tableau |
-| [ADR-0004](docs/adr/0004-iac-terraform-for-snowflake.md) | Terraform for Snowflake (snowflakedb/snowflake provider) |
-| [ADR-0005](docs/adr/0005-always-on-platform-oci-free-tier.md) | Always-on platform on OCI Free Tier |
-| [ADR-0006](docs/adr/0006-single-analytic-engine-snowflake.md) | Snowflake as the single analytic engine |
+| [ADR-0000](docs/ADR/0000-data-warehouse-snowflake-on-aws.md) | Snowflake on AWS as the data warehouse (foundation) |
+| [ADR-0001](docs/ADR/0001-ingestion-dlt-vs-airbyte.md) | dlt over Airbyte for ingestion tooling |
+| [ADR-0002](docs/ADR/0002-orchestration-dagster-vs-airflow.md) | Dagster OSS over Airflow for orchestration |
+| [ADR-0003](docs/ADR/0003-bi-evidence-metabase-vs-power-bi.md) | Evidence.dev + Metabase over Power BI / Tableau for the BI layer |
+| [ADR-0004](docs/ADR/0004-iac-terraform-for-snowflake.md) | Terraform over SQL scripts and Snowsight UI for Snowflake IaC |
+| [ADR-0005](docs/ADR/0005-always-on-platform-oci-free-tier.md) | OCI Free Tier as the always-on platform compute |
+| [ADR-0006](docs/ADR/0006-single-analytic-engine-snowflake.md) | Snowflake as the single analytic engine |
+| [ADR-0007](docs/ADR/0007-semantic-layer-cube-cloud.md) | Cube Cloud as the semantic layer |
+| [ADR-0008](docs/ADR/0008-admin-bootstrap-retained-as-break-glass.md) | `admin_bootstrap` retained as break-glass with compensating controls |
+| [ADR-0009](docs/ADR/0009-oci-payg-with-cost-guardrails.md) | OCI Pay-As-You-Go with €0 cost guardrails |
+
+## Phase reports
+
+| Phase | Report |
+|---|---|
+| Phase 1 — Infrastructure & Governance | [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md) |
 
 ## License
 
