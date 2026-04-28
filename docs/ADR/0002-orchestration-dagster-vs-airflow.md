@@ -1,4 +1,4 @@
-# ADR-0002: Orchestration — Dagster OSS over Airflow
+# ADR-0002: Dagster OSS over Airflow for orchestration
 
 - **Status**: Accepted
 - **Date**: 2026-04-20
@@ -20,22 +20,22 @@ The orchestrator is also the component that exposes the pipeline's operational s
 
 ## Considered Options
 
-- **Airflow** (self-hosted, Astronomer, or MWAA) — industry standard, DAG-based, mature but task-oriented rather than asset-oriented, verbose dbt integration.
-- **Dagster OSS** — asset-oriented, native dbt integration via `dagster-dbt`, modern UI, asset checks as a first-class concept.
-- **Prefect** — similar philosophy to Dagster, weaker dbt integration.
-- **GitHub Actions scheduled workflows only** — zero infrastructure, but no lineage, no UI, no asset checks.
+- **Airflow** (self-hosted, Astronomer, or MWAA), industry standard, DAG-based, mature but task-oriented rather than asset-oriented, verbose dbt integration.
+- **Dagster OSS**: asset-oriented, native dbt integration via `dagster-dbt`, modern UI, asset checks as a first-class concept.
+- **Prefect**: similar philosophy to Dagster, weaker dbt integration.
+- **GitHub Actions scheduled workflows only**: zero infrastructure, but no lineage, no UI, no asset checks.
 
 ## Decision
 
-I chose **Dagster OSS**, self-hosted on the OCI VM. The asset-oriented model maps dbt one-to-one, `dagster-dbt` auto-generates assets from `manifest.json`, and the UI gives me a clear operational view of the pipeline — lineage, check results, and materialization history in one place.
+I chose **Dagster OSS**, self-hosted on the OCI VM. The asset-oriented model maps dbt one-to-one, `dagster-dbt` auto-generates assets from `manifest.json`, and the UI gives me a clear operational view of the pipeline, lineage, check results, and materialization history in one place.
 
 ## Consequences
 
 ### Positive
 
 - Every dbt model becomes a software-defined asset with full lineage, metadata, and check history visible in the UI.
-- Asset checks provide the third layer of the test strategy (cross-system coherence: Cube ↔ dbt ↔ Evidence) — a pattern I found hard to express cleanly in Airflow.
-- The UI consolidates lineage graph, materialization timeline, asset check results, and run history — useful for debugging and for onboarding a second engineer later.
+- Asset checks provide the third layer of the test strategy (cross-system coherence: Cube ↔ dbt ↔ Evidence), a pattern I found hard to express cleanly in Airflow.
+- The UI consolidates lineage graph, materialization timeline, asset check results, and run history (useful for debugging and for onboarding a second engineer later).
 - Python-native code fits the dlt + dbt + notebook ecosystem without adapter layers.
 - Dagster+ Cloud remains a natural option for a later iteration if operational load on the VM becomes inconvenient.
 
@@ -43,7 +43,7 @@ I chose **Dagster OSS**, self-hosted on the OCI VM. The asset-oriented model map
 
 - Smaller community than Airflow; some advanced patterns (e.g. complex sensors) have fewer Stack Overflow answers.
 - Steeper initial learning curve on Dagster-specific concepts (assets vs ops, IO managers, resources, partitions).
-- Self-hosting Dagster means maintaining Postgres, the daemon, and the webserver as Docker services — an ops burden, partially offset by the single-VM Docker Compose setup.
+- Self-hosting Dagster means maintaining Postgres, the daemon, and the webserver as Docker services (an ops burden, partially offset by the single-VM Docker Compose setup).
 
 ### Risk Mitigations
 
@@ -62,7 +62,7 @@ I chose **Dagster OSS**, self-hosted on the OCI VM. The asset-oriented model map
 
 ### GitHub Actions only
 - Good: zero infrastructure, zero cost.
-- Bad: no lineage, no asset model, no cross-system asset checks — eliminates the operational observability this project needs.
+- Bad: no lineage, no asset model, no cross-system asset checks, eliminates the operational observability this project needs.
 
 ## References
 

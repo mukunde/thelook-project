@@ -17,9 +17,9 @@ What is the situation? What forces are at play? What is the decision we need to 
 
 ## Considered Options
 
-- Option A — one-line summary
-- Option B — one-line summary
-- Option C — one-line summary
+- Option A, one-line summary
+- Option B, one-line summary
+- Option C, one-line summary
 
 ## Decision
 
