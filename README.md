@@ -94,14 +94,202 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Ver
 
 Phase 2 will add `ingestion/` (dlt), `transformation/` (dbt), `orchestration/` (Dagster), `semantic/` (Cube), `bi/` (Evidence), `notebooks/`, and `infra/docker/` (Docker Compose stack for the OCI VM).
 
-## Prerequisites
+## Getting Started
 
-- [Terraform](https://developer.hashicorp.com/terraform/install) ≥ 1.6
-- [uv](https://docs.astral.sh/uv/) for the Python toolchain
-- A GCP account with a project and a service account that has BigQuery read access (required to query the public TheLook dataset; queries against public datasets bill against your own project's quota)
-- A Snowflake account (30-day trial or paid plan; resource monitor caps usage at 10 credits/month)
-- An OCI account with the `oci-cli` configured (Free Trial sufficient initially; Pay-As-You-Go required to subscribe additional regions, see [ADR-0009](docs/ADR/0009-oci-payg-with-cost-guardrails.md))
-- A Terraform Cloud Free account with a workspace per module
+The Terraform code in `infra/terraform/snowflake/` and `infra/terraform/oci/` is fully reproducible: applied to fresh Snowflake and OCI accounts, it produces the same infrastructure footprint every time. However, the path from "fresh accounts" to "first successful `terraform apply`" requires a one-time manual bootstrap that cannot be expressed in Terraform itself: account creation, MFA enrollment, OCI Pay-As-You-Go upgrade, region subscription, RSA key-pair generation, and Terraform Cloud workspace + sensitive variables setup. Total wall-clock time for the bootstrap: ~1 to 2 hours. Subsequent changes flow through `git push` → TFC apply with zero manual intervention.
+
+<details>
+<summary><strong>Click to expand the full bootstrap procedure (~1-2h, one-time)</strong></summary>
+
+### Local tools
+
+Install before you begin.
+
+| Tool | Why | Install |
+|---|---|---|
+| `git` | Source control | OS package manager |
+| Terraform CLI ≥ 1.6 | Local `fmt` / `validate`; remote applies run in TFC | [hashicorp.com/install](https://developer.hashicorp.com/terraform/install) |
+| `openssl` | Generate RSA key pairs for Snowflake users | OS package manager |
+| `ssh-keygen` | Generate the SSH key pair used by the OCI VM | usually pre-installed |
+| `uv` | Python toolchain (used by Phase 2 ingestion) | [astral.sh/uv](https://docs.astral.sh/uv/) |
+| `pre-commit` | Run repo's pre-commit hooks locally before push | `pip install pre-commit` |
+| `oci` CLI (optional) | Diagnostics; not required for `terraform apply` | [oracle.com/cli](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm) |
+
+### Accounts to create
+
+| Account | Tier required | Why | Approx. setup time |
+|---|---|---|---|
+| GitHub | Free | Source of truth, VCS-driven TFC runs | 5 min |
+| Terraform Cloud | Free | Remote state, sensitive variables, workspace runs | 10 min |
+| Snowflake | 30-day Trial ($400 credits) | Data warehouse | 5 min |
+| OCI | Free Trial → upgraded to Pay-As-You-Go | Always-on platform; PayG required to subscribe additional regions per [ADR-0009](docs/ADR/0009-oci-payg-with-cost-guardrails.md) | 30 min |
+| GCP | Free | Source dataset on BigQuery (Phase 2 ingestion). Setup deferred: no GCP credentials are required for Phase 1 (infrastructure and governance). Phase 2 will document service account creation, BigQuery API enablement, and the corresponding TFC variable. | (Phase 2) |
+
+The PayG upgrade exposes a credit card. The €0 TCO commitment is preserved by the four-layer cost defense in `infra/terraform/oci/quotas.tf` and `budget.tf` (Compartment Quotas, Budget canary, MFA, IaC-only). See [ADR-0009](docs/ADR/0009-oci-payg-with-cost-guardrails.md) for the rationale.
+
+### One-time manual console steps
+
+These cannot be expressed in Terraform. Order matters: do them top to bottom.
+
+1. **Snowflake — sign up** at <https://signup.snowflake.com>. Note the account identifier (e.g. `xy12345.eu-west-1.aws`) and the bootstrap user credentials. We refer to this user as `admin_bootstrap`.
+2. **Snowflake — enroll MFA** on `admin_bootstrap` (Snowsight → bottom-left user menu → My profile → Multi-factor authentication → Enroll). See [ADR-0008](docs/ADR/0008-admin-bootstrap-retained-as-break-glass.md).
+3. **Snowflake — generate `admin_bootstrap` RSA key pair** locally and register the public key (the Snowflake provider authenticates via JWT only, not password):
+   ```bash
+   mkdir -p ~/.ssh/thelook && cd ~/.ssh/thelook
+   openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -nocrypt \
+     -out admin_bootstrap_rsa_key.p8
+   openssl rsa -in admin_bootstrap_rsa_key.p8 -pubout \
+     -out admin_bootstrap_rsa_key.pub
+   ```
+   In Snowsight, run as ACCOUNTADMIN (replace `<KEY_CONTENT>` with the public key without the `-----BEGIN/END-----` lines and without newlines):
+   ```sql
+   ALTER USER admin_bootstrap SET RSA_PUBLIC_KEY = '<KEY_CONTENT>';
+   ```
+4. **Snowflake — generate the 5 service user RSA key pairs** (one each for USER_TERRAFORM, USER_DLT, USER_DBT, USER_DAGSTER, USER_CUBE):
+   ```bash
+   for u in terraform dlt dbt dagster cube; do
+     openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -nocrypt \
+       -out ${u}_rsa_key.p8
+     openssl rsa -in ${u}_rsa_key.p8 -pubout -out ${u}_rsa_key.pub
+   done
+   ```
+   These 5 public keys feed Terraform Cloud variables (next section). The private keys stay on disk for the runtime services that need them (Phase 2). Never commit any of these to git.
+5. **OCI — sign up** at <https://www.oracle.com/cloud/free>. Complete identity verification. Note the tenancy OCID and the home region (immutable).
+6. **OCI — upgrade the tenancy to Pay-As-You-Go** (Console → Billing & Cost Management → Subscriptions → Upgrade). Required to subscribe additional regions.
+7. **OCI — subscribe to a region with reliable A1 capacity**, typically `eu-frankfurt-1` (Console → top-right region menu → Manage Regions → Subscribe). The home region often has saturated A1 capacity; the subscribed region is the one used by Terraform.
+8. **OCI — enroll MFA** on the human admin user (Console → Identity & Security → Domains → Default → Users → your user → Authentication → Enable MFA).
+9. **OCI — create a dedicated compartment** named `thelook-prod` for the project resources (Console → Identity & Security → Compartments → Create). Note its OCID.
+10. **OCI — generate the API key pair** locally and register the public key in OCI Console (Console → User profile → API Keys → Add API Key):
+    ```bash
+    mkdir -p ~/.oci && chmod 700 ~/.oci
+    openssl genrsa -out ~/.oci/thelook_api_key.pem 2048
+    chmod 600 ~/.oci/thelook_api_key.pem
+    openssl rsa -pubout -in ~/.oci/thelook_api_key.pem \
+      -out ~/.oci/thelook_api_key_public.pem
+    ```
+    Upload `thelook_api_key_public.pem` content to OCI Console; note the fingerprint shown after upload.
+11. **OCI — generate the SSH key pair** for the VM (used by the Bastion sessions to authenticate, and as the `ubuntu` user's authorized key via cloud-init):
+    ```bash
+    ssh-keygen -t rsa -b 4096 -C "thelook-vm" -f ~/.ssh/thelook/oci_vm_rsa
+    ```
+12. **Terraform Cloud — sign up** at <https://app.terraform.io>. Create an organization (e.g. `thelook-project`).
+13. **Terraform Cloud — connect GitHub** (Settings → Providers → VCS Providers → Add → GitHub.com). Required for VCS-driven runs.
+14. **Terraform Cloud — create two workspaces**, both VCS-driven, pointing to your fork of this repo:
+    - `thelook-snowflake` with working directory `infra/terraform/snowflake`
+    - `thelook-oci` with working directory `infra/terraform/oci`
+
+### Configure Terraform Cloud workspace variables
+
+Set these on the corresponding workspace (TFC → Workspace → Variables → Add variable). Mark sensitive variables as such — they will be encrypted at rest by HashiCorp and never re-displayed in plain text.
+
+**`thelook-snowflake` workspace:**
+
+| Variable | Initial value | Sensitive |
+|---|---|---|
+| `snowflake_organization_name` | your Snowflake org (visible in the account URL) | No |
+| `snowflake_account_name` | your Snowflake account | No |
+| `snowflake_user` | `admin_bootstrap` | No |
+| `snowflake_role` | `ACCOUNTADMIN` | No |
+| `snowflake_private_key` | content of `admin_bootstrap_rsa_key.p8` (PEM, full file) | Yes |
+| `user_terraform_public_key` | content of `terraform_rsa_key.pub` (no headers, no newlines) | Yes |
+| `user_dlt_public_key` | content of `dlt_rsa_key.pub` (no headers, no newlines) | Yes |
+| `user_dbt_public_key` | content of `dbt_rsa_key.pub` (no headers, no newlines) | Yes |
+| `user_dagster_public_key` | content of `dagster_rsa_key.pub` (no headers, no newlines) | Yes |
+| `user_cube_public_key` | content of `cube_rsa_key.pub` (no headers, no newlines) | Yes |
+
+To strip a public key for the `*_public_key` variables:
+```bash
+awk '!/-----/ {printf "%s", $0}' <key>.pub
+```
+
+**`thelook-oci` workspace:**
+
+| Variable | Value | Sensitive |
+|---|---|---|
+| `tenancy_ocid` | from OCI Console | No |
+| `user_ocid` | from OCI Console (your user, not a service user) | No |
+| `fingerprint` | from API key registration step | No |
+| `private_key` | content of `~/.oci/thelook_api_key.pem` (PEM, full file) | Yes |
+| `region` | `eu-frankfurt-1` (or your subscribed region) | No |
+| `home_region` | `eu-paris-1` (or your tenancy's home region; required for tenancy-level operations like quotas and budgets) | No |
+| `compartment_ocid` | OCID of the `thelook-prod` compartment | No |
+| `ssh_public_key` | content of `~/.ssh/thelook/oci_vm_rsa.pub` | No |
+| `cost_alert_email` | recipient(s) for budget alerts (comma-separated, no spaces) | No |
+
+### Reproduce the infrastructure
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/<you>/thelook-project.git
+cd thelook-project
+
+# 2. (Optional) Install pre-commit hooks for local validation
+pre-commit install
+
+# 3. Snowflake — first apply via TFC (as admin_bootstrap)
+# In TFC UI: thelook-snowflake workspace → Actions → Start new run.
+# Expected plan: ~25 resources to add (3 databases, 6 schemas, 3 warehouses,
+# 5 RBAC roles, 5 service users, 1 resource monitor, ownership transfers).
+# Confirm & Apply. Duration: ~3-5 min.
+
+# 4. Snowflake — rotate from admin_bootstrap to USER_TERRAFORM (one-time)
+# In TFC UI: thelook-snowflake workspace → Variables → Edit:
+#   snowflake_user        = USER_TERRAFORM
+#   snowflake_role        = ROLE_TERRAFORM
+#   snowflake_private_key = content of terraform_rsa_key.p8
+# Save, then trigger a new run.
+# Expected plan: "0 to add, 0 to change, 0 to destroy" — confirms the
+# rotation is clean and the new identity has the same effective rights.
+
+# 5. OCI — apply via TFC
+# In TFC UI: thelook-oci workspace → Actions → Start new run.
+# Expected plan: ~14 resources to add (VCN, subnet, IGW, route table,
+# security list, NSG, bastion, VM, Reserved IP, quota, budget, 5 alert
+# rules). Confirm & Apply. Duration: ~5-10 min.
+
+# 6. OCI VM — wait for cloud-init (~8-12 min after VM "Running" state)
+# Cloud-init runs apt update, package upgrade, Docker install, fail2ban,
+# unattended-upgrades, deploy user creation, /opt/thelook workspace setup.
+# Verify completion via OCI Console → Compute → "thelook-vm" → Metrics
+# (CPU usage drops below ~5% when cloud-init finishes).
+
+# 7. OCI VM — verify SSH access via Bastion port-forwarding session
+# OCI Console → Identity & Security → Bastion → "thelook-bastion"
+# → Create session:
+#   Type: SSH port forwarding session
+#   IP: <VM private IPv4 from the OCI Console>
+#   Port: 22
+#   SSH key: ~/.ssh/thelook/oci_vm_rsa.pub
+# Then locally, in two terminals:
+ssh -i ~/.ssh/thelook/oci_vm_rsa -o ServerAliveInterval=60 \
+    -N -L 22000:<vm-private-ip>:22 -p 22 \
+    <session-ocid>@host.bastion.<region>.oci.oraclecloud.com
+# (other terminal)
+ssh -i ~/.ssh/thelook/oci_vm_rsa -p 22000 ubuntu@localhost
+```
+
+### What is NOT reproducible from `git clone` + `terraform apply` alone
+
+Honest list of what cannot be eliminated:
+
+- **Account creation** for Snowflake, OCI, Terraform Cloud, GitHub.
+- **MFA enrollment** on the Snowflake bootstrap user and the OCI human admin user (provider self-service flows, no API).
+- **OCI tenancy upgrade to Pay-As-You-Go** (credit card required, console flow with 3DS).
+- **OCI region subscription** post-PayG upgrade (console action).
+- **Local RSA key-pair generation** (5 Snowflake service users + 1 OCI API key + 1 SSH key for the VM). The private keys must never be committed.
+- **The first Snowflake apply must run as `admin_bootstrap`** (ACCOUNTADMIN); the rotation to `USER_TERRAFORM` is a one-time TFC variable update, documented above and verified by a clean `0/0/0` plan.
+- **Terraform Cloud workspace creation and sensitive variables setup** (chicken-and-egg with Terraform-managing-Terraform-Cloud).
+- **OCI Bastion sessions** for SSH access (interactive, max 3h TTL, must be re-created when the VM private IP changes).
+- **Pre-commit hook installation** locally (`pre-commit install` on first clone).
+
+After this one-time bootstrap (~1-2h), every subsequent change to infrastructure or RBAC flows through:
+
+1. Edit code, commit, push.
+2. TFC auto-triggers a plan.
+3. Review plan, click Confirm & Apply.
+4. Done.
+
+</details>
 
 ## Demo-on-demand policy
 
