@@ -1,4 +1,4 @@
-# TheLook Modern Data Stack (Python-First, IaC, Self-Hosted)
+# TheLook Modern Data Stack (Snowflake, dbt, Code-First, IaC)
 
 > A hands-on modern data stack built around the public [TheLook eCommerce](https://console.cloud.google.com/marketplace/product/bigquery-public-data/thelook-ecommerce) dataset. Snowflake as the single analytic engine, Dagster + Metabase running always-on on OCI Free Tier, the whole platform declared via Terraform.
 
@@ -12,8 +12,8 @@ The following surfaces are produced by Phase 2. Phase 1 delivered the platform u
 
 | Surface | URL | Availability |
 |---|---|---|
-| Dagster UI | `https://dagster.tondomaine.dev` | Always-on (OCI), Phase 2 |
-| Metabase | `https://metabase.tondomaine.dev` | Always-on (OCI), Phase 2 |
+| Dagster UI | `https://dagster.<domain>.dev` | Always-on (OCI), Phase 2 |
+| Metabase | `https://metabase.<domain>.dev` | Always-on (OCI), Phase 2 |
 | Evidence.dev dashboard | `https://<project>.vercel.app` | Always-on (Vercel, static), Phase 2 |
 | dbt docs | `https://<user>.github.io/<repo>/` | GitHub Pages, Phase 2 |
 | Walk-through video | Loom link | Phase 2 |
@@ -22,7 +22,7 @@ The following surfaces are produced by Phase 2. Phase 1 delivered the platform u
 
 ## Problem
 
-A simulated scale-up e-commerce operates three departments — Finance, Marketing, Operations — that consume the same raw data but compute divergent KPIs. Without a single source of truth, `net_revenue` reported by Finance differs from what Marketing infers, and Operations ignores partial returns entirely.
+A simulated scale-up e-commerce operates three departments — Finance, Marketing, Operations — that consume the same raw data but compute divergent KPIs. Without a single source of truth, `net_revenue` reported by Finance differs from what Marketing infers, and only Operations factors partial returns into the calculation.
 
 This project implements a **semantic layer** (Cube) as the arbiter: each critical metric has a single definition, and each department layers its own dimensions on top without touching the underlying formula.
 
@@ -50,9 +50,9 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Ver
 
 ## Design principles
 
-- **Python-first** for all code (ingestion, orchestration, analytical notebooks).
+- **Code-first, versionable everywhere** — every component (ingestion, orchestration, transformations, infrastructure, dashboards) is declared as code under Git, regardless of language (Python, SQL, HCL, YAML), not clicked in a UI.
 - **Infrastructure-as-Code** for everything provisionable — Snowflake warehouses and RBAC are declared with the same discipline as the OCI VM.
-- **Single analytic engine** — Snowflake, no DuckDB mirror, no ADB fallback. See [ADR-0006](docs/ADR/0006-single-analytic-engine-snowflake.md).
+- **Single analytic engine** — Snowflake only, with no DuckDB mirror and no Oracle Autonomous Database (ADB) fallback. See [ADR-0006](docs/ADR/0006-single-analytic-engine-snowflake.md).
 - **Always-on platform, demo-on-demand warehouse** — Dagster + Metabase run permanently on OCI Free Tier at €0; Snowflake is `terraform apply`-ed for active periods and `terraform destroy`-ed afterwards.
 - **Documented decisions** — [ten ADRs](docs/ADR/) capture the structuring choices with their trade-offs, plus a [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md) consolidating the infrastructure and governance work.
 
@@ -62,15 +62,15 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Ver
 |---|---|---|---|
 | Source | BigQuery (TheLook) | GCP | €0 |
 | Ingestion | dlt | Dagster on OCI | €0 |
-| Warehouse | Snowflake on AWS | Cloud, demo-on-demand | €0 during 30-day trial, capped at 10 credits/month if upgraded (resource monitor) |
+| Warehouse | Snowflake | AWS, demo-on-demand | €0 during 30-day trial, capped at 10 credits/month if upgraded (resource monitor) |
 | Transformation | dbt Core | Dagster on OCI + CI | €0 |
-| Semantic layer | Cube Cloud (dev) | SaaS Free | €0 |
+| Semantic layer | Cube Cloud (dev) | SaaS | €0 |
 | Orchestration | Dagster OSS | OCI VM, always-on | €0 |
-| BI (static) | Evidence.dev | Vercel Free | €0 |
+| BI (static) | Evidence.dev | Vercel | €0 |
 | BI (live) | Metabase | OCI VM, always-on | €0 |
 | Reverse proxy + TLS | Caddy | OCI VM | €0 |
-| IaC | Terraform (dual provider) | Terraform Cloud Free | €0 |
-| CI/CD | GitHub Actions | GitHub Free | €0 |
+| IaC | Terraform (dual provider) | Terraform Cloud | €0 |
+| CI/CD | GitHub Actions | GitHub | €0 |
 | Domain (optional) | Any registrar | — | ~€10/year |
 
 ## Repository layout
@@ -94,58 +94,14 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Ver
 
 Phase 2 will add `ingestion/` (dlt), `transformation/` (dbt), `orchestration/` (Dagster), `semantic/` (Cube), `bi/` (Evidence), `notebooks/`, and `infra/docker/` (Docker Compose stack for the OCI VM).
 
-## Getting started
-
-### Prerequisites
+## Prerequisites
 
 - [Terraform](https://developer.hashicorp.com/terraform/install) ≥ 1.6
 - [uv](https://docs.astral.sh/uv/) for the Python toolchain
+- A GCP account with a project and a service account that has BigQuery read access (required to query the public TheLook dataset; queries against public datasets bill against your own project's quota)
 - A Snowflake account (30-day trial or paid plan; resource monitor caps usage at 10 credits/month)
 - An OCI account with the `oci-cli` configured (Free Trial sufficient initially; Pay-As-You-Go required to subscribe additional regions, see [ADR-0009](docs/ADR/0009-oci-payg-with-cost-guardrails.md))
 - A Terraform Cloud Free account with a workspace per module
-
-### Install Python tooling
-
-```bash
-uv sync
-```
-
-This installs the dev tools (ruff, mypy, pytest) defined in [`pyproject.toml`](pyproject.toml).
-
-### Provision Snowflake
-
-```bash
-cd infra/terraform/snowflake
-cp terraform.tfvars.example terraform.tfvars   # fill in your values
-terraform init
-terraform plan
-terraform apply
-```
-
-See [`infra/terraform/snowflake/README.md`](infra/terraform/snowflake/README.md) for the full variable list and role layout.
-
-### Provision the OCI VM
-
-```bash
-cd infra/terraform/oci
-cp terraform.tfvars.example terraform.tfvars   # fill in your values
-terraform init
-terraform plan
-terraform apply
-```
-
-See [`infra/terraform/oci/README.md`](infra/terraform/oci/README.md) for region strategy (ARM A1 capacity considerations) and post-bootstrap steps.
-
-### Deploy the Docker Compose stack on the VM
-
-```bash
-cd infra/docker
-cp .env.example .env                           # fill in your values
-# Transfer this directory to the OCI VM via OCI Bastion, then:
-docker compose up -d
-```
-
-See [`infra/docker/README.md`](infra/docker/README.md) for TLS setup and the public service layout.
 
 ## Demo-on-demand policy
 
@@ -161,11 +117,13 @@ Metabase dashboards keep their last-successful-query results cached, so the live
 - The always-on platform (Dagster + Metabase + Postgres × 2 + Caddy) runs on OCI Free Tier at €0 in perpetuity.
 - A `snowflake_usage` dbt model exposes warehouse credit consumption for monitoring.
 
-## GDPR notes
+## GDPR and Governance
 
 - PII columns are pseudonymized via a deterministic SHA-256 + salt macro at the staging layer.
 - A `meta.data_classification` tag (`public` / `internal` / `pii` / `sensitive_pii`) is exposed in dbt docs and drives the Snowflake RBAC.
-- Ingestion applies a hard cut-off at 2023-01-01 for data minimization.
+
+### RBAC
+
 - Five Snowflake roles (`ROLE_INGESTION`, `ROLE_TRANSFORM`, `ROLE_ANALYST_FINANCE`, `ROLE_ANALYST_MARKETING`, `ROLE_ANALYST_OPS`) are declared in Terraform with least-privilege grants.
 
 ## Decision records
