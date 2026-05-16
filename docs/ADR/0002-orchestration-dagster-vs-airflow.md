@@ -2,11 +2,11 @@
 
 - **Status**: Accepted
 - **Date**: 2026-04-20
-- **Tags**: orchestration, python-first, dbt, lineage
+- **Tags**: orchestration, code-first, dbt, lineage
 
 ## Context and Problem Statement
 
-The project needs an orchestrator to schedule and coordinate the dlt → dbt → Cube pipeline, surface lineage, and run data quality checks across systems. The orchestrator is self-hosted on an OCI Always Free VM and must remain cheap to operate and Python-native to fit the rest of the stack.
+The project needs an orchestrator to schedule and coordinate the dlt → dbt → Cube pipeline, surface lineage, and run data quality checks across systems. The orchestrator is self-hosted on an OCI Always Free VM and must remain cheap to operate, code-first, and Python-native to fit the rest of the stack (Python is the tactical default where the language is debatable: dlt, custom code, notebooks).
 
 The orchestrator is also the component that exposes the pipeline's operational state: anyone debugging a failed run or onboarding onto the project needs a single place to see lineage, run history, and check results without digging through scattered logs.
 
@@ -15,7 +15,7 @@ The orchestrator is also the component that exposes the pipeline's operational s
 - **Asset-oriented modelling**: dbt produces a graph of models; the orchestrator should represent this 1:1 without boilerplate translation.
 - **Native dbt integration**: auto-generation of orchestration units from `manifest.json`, not an afterthought bolted on top.
 - **UI quality**: lineage, runs, asset checks, and materializations must be legible at a glance rather than reconstructed from logs.
-- **Python-native**: consistency with the dlt + notebook parts of the stack.
+- **Code-first with Python-native ergonomics**: orchestration logic is declared as code under Git like every other component; Python-native fit gives consistency with the dlt + notebook parts of the stack without adapter layers.
 - **Data quality integration**: support for a third test layer beyond dbt tests, usable for cross-system checks (e.g. Cube ↔ dbt coherence).
 
 ## Considered Options

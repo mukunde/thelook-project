@@ -39,7 +39,8 @@ The project is single-operator, has no end users beyond its author, no productio
 
 ### Soft preferences
 
-- Python-first wherever possible (consistency across ingestion, orchestration, notebooks).
+- Code-first wherever the language is debatable (architecture principle): every component is declared as code under Git, regardless of language (Python, SQL, HCL, YAML), and never clicked in a UI.
+- Python preference where language-agnostic (tactical default): for components where the language is not dictated by the tool, Python is preferred to keep ingestion, orchestration, and notebooks consistent.
 - Declarative over imperative configuration.
 - Documentation-as-code: every non-trivial decision is recorded as an ADR before code is written.
 
@@ -138,7 +139,7 @@ Foundation decision. Snowflake on AWS is chosen over BigQuery on GCP, Databricks
 <details>
 <summary><strong>ADR-0001 — dlt over Airbyte for ingestion tooling</strong></summary>
 
-dlt is chosen over Airbyte OSS, Fivetran, and custom Python scripts. Drivers: Python-first stack consistency, no infrastructure overhead (Airbyte requires Postgres + Temporal + workers), built-in incremental load primitives, native secrets handling, code-first ergonomics that fit a dbt + Dagster ecosystem.
+dlt is chosen over Airbyte OSS, Fivetran, and custom Python scripts. Drivers: code-first stack consistency (Python preference where language-agnostic), no infrastructure overhead (Airbyte requires Postgres + Temporal + workers), built-in incremental load primitives, native secrets handling, ergonomics that fit a dbt + Dagster ecosystem.
 
 </details>
 

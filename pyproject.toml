@@ -1,7 +1,7 @@
 [project]
 name = "thelook-mds"
 version = "0.1.0"
-description = "TheLook modern data stack — Python-first, IaC, self-hosted"
+description = "TheLook modern data stack — Code-first, IaC, self-hosted"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
