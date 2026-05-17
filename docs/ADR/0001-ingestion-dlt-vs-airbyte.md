@@ -2,17 +2,17 @@
 
 - **Status**: Accepted
 - **Date**: 2026-04-20
-- **Tags**: ingestion, python-first, tco
+- **Tags**: ingestion, code-first, tco
 
 ## Context and Problem Statement
 
-The project ingests data from the public TheLook eCommerce dataset (hosted on GCP BigQuery) into Snowflake. Ingestion runs daily and must remain reproducible, cheap to operate, and consistent with the Python-first choices made elsewhere in the stack.
+The project ingests data from the public TheLook eCommerce dataset (hosted on GCP BigQuery) into Snowflake. Ingestion runs daily and must remain reproducible, cheap to operate, and consistent with the code-first principle of the stack, with a tactical Python preference where the language is debatable (alongside Dagster, notebooks, and shared tooling).
 
 The ingestion layer must integrate with Dagster, run in CI for integration tests, and keep secrets handling simple on both local workstations and the OCI-hosted orchestrator.
 
 ## Decision Drivers
 
-- **Python-first stack consistency**: Dagster and custom code are already Python-native; the ingestion tool should not force a context switch.
+- **Code-first stack consistency, with Python preference where language-agnostic**: every component is declared as code under Git regardless of language (Python, SQL, HCL, YAML); where the language is debatable (ingestion, orchestration, notebooks), Python is preferred to avoid context-switching with Dagster and custom code.
 - **Operational simplicity**: the orchestrator already runs on a single OCI VM. Adding a heavy ingestion platform (the Airbyte stack requires its own Postgres + Temporal + multiple containers) would consume a large portion of the free-tier VM resources.
 - **Code-review culture**: pipelines must be versioned, testable with `pytest`, and reviewable in Pull Requests like any other code.
 - **Incremental loading**: the dataset supports `created_at`-based incremental loading; the tool must offer a first-class primitive for this.

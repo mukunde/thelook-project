@@ -95,6 +95,54 @@ resource "snowflake_grant_privileges_to_account_role" "analyst_finance_analytics
   }
 }
 
+# ─── Schema-level grants on RAW.THELOOK (dlt landing zone) ──
+# ROLE_INGESTION must be able to write (USAGE + CREATE TABLE / VIEW) into the
+# pre-declared RAW.THELOOK schema. ROLE_TRANSFORM must be able to read it.
+# Future grants on TABLES / VIEWS ensure dbt (ROLE_TRANSFORM) automatically
+# picks up SELECT on any object dlt creates in this schema.
+
+resource "snowflake_grant_privileges_to_account_role" "ingestion_raw_thelook_schema" {
+  account_role_name = snowflake_account_role.ingestion.name
+  privileges        = ["USAGE", "CREATE TABLE", "CREATE VIEW"]
+
+  on_schema {
+    schema_name = "\"${snowflake_database.raw.name}\".\"${snowflake_schema.raw_thelook.name}\""
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "transform_raw_thelook_schema" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["USAGE"]
+
+  on_schema {
+    schema_name = "\"${snowflake_database.raw.name}\".\"${snowflake_schema.raw_thelook.name}\""
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "transform_raw_thelook_tables" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["SELECT"]
+
+  on_schema_object {
+    future {
+      object_type_plural = "TABLES"
+      in_schema          = "\"${snowflake_database.raw.name}\".\"${snowflake_schema.raw_thelook.name}\""
+    }
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "transform_raw_thelook_views" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["SELECT"]
+
+  on_schema_object {
+    future {
+      object_type_plural = "VIEWS"
+      in_schema          = "\"${snowflake_database.raw.name}\".\"${snowflake_schema.raw_thelook.name}\""
+    }
+  }
+}
+
 # ─── Schema & future-object grants on the Finance marts ─────
 
 resource "snowflake_grant_privileges_to_account_role" "analyst_finance_marts_schema" {
