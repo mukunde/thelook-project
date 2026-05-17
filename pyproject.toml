@@ -5,7 +5,7 @@ description = "TheLook modern data stack — Code-first, IaC, self-hosted"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "TheLook MDS contributors" }]
+authors = [{ name = "Gaël Mukunde" }]
 
 # Application dependencies (dlt, dbt, dagster, cube-py, etc.) are pinned inside
 # their respective sub-projects once those land. This root project carries only
@@ -24,6 +24,9 @@ dev = [
 [tool.uv]
 # Keep lockfile in the repo for reproducible CI
 package = false
+
+[tool.uv.workspace]
+members = ["ingestion"]
 
 # ──────────────────────────────────────────────────────────
 # Ruff — linter + formatter
@@ -47,6 +50,13 @@ select = [
 ignore = [
   "E501", # line length handled by formatter
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# dlt's source / resource pattern relies on function calls as default arguments
+# (e.g. `dlt.sources.incremental(...)`); each call must produce a fresh
+# instance because it holds per-run state. The B008 rule's recommended
+# workaround (module-level singleton) is incorrect for dlt.
+"ingestion/**" = ["B008"]
 
 [tool.ruff.format]
 quote-style = "double"
