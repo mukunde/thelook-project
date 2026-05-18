@@ -33,7 +33,7 @@ Future Phase 2 additions: `transformation/` (dbt), `orchestration/` (Dagster), `
 uv sync
 
 # Run the ingestion pipeline (Sprint 1)
-uv run python ingestion/thelook_finance.py
+cd ingestion && uv run python thelook_finance.py
 
 # Tests
 uv run pytest                            # all unit tests across workspace
