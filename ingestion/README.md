@@ -35,7 +35,7 @@ dlt pipelines that land the public BigQuery [`thelook_ecommerce`](https://consol
 ## Run the pipeline
 
 ```powershell
-uv run python ingestion/thelook_finance.py
+cd ingestion && uv run python thelook_finance.py
 ```
 
 Expected output: a `dlt.LoadInfo` summary showing one job for `users` completed successfully. The table `RAW.THELOOK.users` is created (or merged into) by the first run.
