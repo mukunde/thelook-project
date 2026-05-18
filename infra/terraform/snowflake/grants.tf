@@ -181,4 +181,40 @@ resource "snowflake_grant_privileges_to_account_role" "analyst_finance_marts_vie
 # TODO: replicate the three analyst_finance_marts_* blocks above for
 # ROLE_ANALYST_MARKETING and ROLE_ANALYST_OPS when their marts are wired.
 
+# ─── Role hierarchy (custom roles → SYSADMIN) ───────────────
+# Snowflake best practice: every custom role inherits from SYSADMIN so that
+# SYSADMIN (and ACCOUNTADMIN, which inherits from SYSADMIN) sees and manages
+# every object the custom roles own. Without this chain, objects created by
+# ROLE_INGESTION (e.g. RAW.THELOOK.users populated by dlt) are invisible to
+# SYSADMIN and ACCOUNTADMIN — even break-glass actions on those objects fail
+# without a temporary `GRANT ROLE x TO USER admin` first.
+#
+# Reference: https://docs.snowflake.com/en/user-guide/security-access-control-considerations
+# (section "Aligning Object Access with Business Functions").
+
+resource "snowflake_grant_account_role" "ingestion_to_sysadmin" {
+  role_name        = snowflake_account_role.ingestion.name
+  parent_role_name = "SYSADMIN"
+}
+
+resource "snowflake_grant_account_role" "transform_to_sysadmin" {
+  role_name        = snowflake_account_role.transform.name
+  parent_role_name = "SYSADMIN"
+}
+
+resource "snowflake_grant_account_role" "analyst_finance_to_sysadmin" {
+  role_name        = snowflake_account_role.analyst_finance.name
+  parent_role_name = "SYSADMIN"
+}
+
+resource "snowflake_grant_account_role" "analyst_marketing_to_sysadmin" {
+  role_name        = snowflake_account_role.analyst_marketing.name
+  parent_role_name = "SYSADMIN"
+}
+
+resource "snowflake_grant_account_role" "analyst_ops_to_sysadmin" {
+  role_name        = snowflake_account_role.analyst_ops.name
+  parent_role_name = "SYSADMIN"
+}
+
 # ─── Role → User assignments are declared in users.tf ───────
