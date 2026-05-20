@@ -11,8 +11,8 @@ sources:
   - name: segment
     description: >
       User profiles from Segment CDP, simulated via the public
-      `bigquery-public-data.thelook_ecommerce` dataset. See the project's ADR
-      on simulated source mapping for portfolio narrative (planned ADR-0010).
+      `bigquery-public-data.thelook_ecommerce` dataset. See `docs/ADR/0010-simulated-source-mapping.md`
+      for the rationale and the canonical mapping of TheLook tables to upstream systems.
 
     database: RAW
     schema: THELOOK

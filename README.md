@@ -328,6 +328,7 @@ Metabase dashboards keep their last-successful-query results cached, so the live
 | [ADR-0007](docs/ADR/0007-semantic-layer-cube-cloud.md) | Cube Cloud as the semantic layer |
 | [ADR-0008](docs/ADR/0008-admin-bootstrap-retained-as-break-glass.md) | `admin_bootstrap` retained as break-glass with compensating controls |
 | [ADR-0009](docs/ADR/0009-oci-payg-with-cost-guardrails.md) | OCI Pay-As-You-Go with €0 cost guardrails |
+| [ADR-0010](docs/ADR/0010-simulated-source-mapping.md) | Simulated source mapping for portfolio narrative (TheLook → 6 simulated French upstream systems) |
 
 ## Phase reports
 
