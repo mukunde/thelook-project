@@ -145,3 +145,56 @@ models:
       - name: _dbt_invocation_id
         description: Unique dbt invocation ID for the mart-build that produced this row.
         data_type: VARCHAR
+
+  - name: dim_dates
+    description: >
+      Conformed date dimension. Synthetic — no upstream source. Generated
+      via `dbt_utils.date_spine` covering 2023-01-01 (project cutoff) to
+      `current_date() + 2 years`. Re-built on every `dbt run` so the
+      end_date stays fresh. Joined by every fct table on `date_day`.
+
+    config:
+      contract:
+        enforced: true
+
+    columns:
+      # ─── Primary key ─────────────────────────────────────────
+      - name: date_day
+        description: Calendar day. Primary key of the dimension.
+        data_type: DATE
+        data_tests:
+          - not_null
+          - unique
+
+      # ─── Atomic calendar components ──────────────────────────
+      - name: year
+        description: Calendar year (e.g., 2024).
+        data_type: NUMBER
+      - name: quarter
+        description: Calendar quarter (1, 2, 3, or 4).
+        data_type: NUMBER
+      - name: month
+        description: Calendar month (1-12).
+        data_type: NUMBER
+      - name: day
+        description: Day of the month (1-31).
+        data_type: NUMBER
+      - name: day_of_week
+        description: Day of the week per Snowflake DAYOFWEEK convention (0 = Sunday, 6 = Saturday).
+        data_type: NUMBER
+      - name: day_of_year
+        description: Day of the year (1-366, accounts for leap years).
+        data_type: NUMBER
+
+      # ─── Composite BI-friendly attributes ────────────────────
+      - name: year_month
+        description: ISO-style year-month string (e.g., "2024-01"). Useful for grouping in BI tools.
+        data_type: VARCHAR
+      - name: year_quarter
+        description: Year-quarter string (e.g., "2024-Q1"). Useful for executive reporting.
+        data_type: VARCHAR
+
+      # ─── Behavioural flags ───────────────────────────────────
+      - name: is_weekend
+        description: True if the day is Saturday or Sunday (Snowflake DAYOFWEEK = 0 or 6).
+        data_type: BOOLEAN
