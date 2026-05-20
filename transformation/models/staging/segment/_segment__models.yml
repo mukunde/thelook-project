@@ -4,9 +4,10 @@ models:
   - name: stg_segment__users
     description: >
       Staging model for Segment users. One row per user, with snake_case
-      naming, type casting, and audit columns appended. Source PII fields
-      are passed through unchanged — pseudonymisation is added in a
-      subsequent feature.
+      naming, type casting, and audit columns appended. PII fields
+      (first_name, last_name, email, street_address) are pseudonymised
+      via SHA-256 + salt (see `macros/pseudonymise.sql`). The salt is
+      read from the env var DBT_PSEUDONYMISATION_SALT at compile time.
 
     # ─── Optional: enforce a contract (column names + types) ─────
     # Activated in a separate feature. For now, model evolves freely.
@@ -22,19 +23,19 @@ models:
           - not_null
           - unique
 
-      # ─── PII columns (pseudonymisation deferred to a follow-up feature) ──
+      # ─── PII columns: pseudonymised via SHA-256 + salt (macros/pseudonymise.sql) ──
       - name: first_name
-        description: PII (first name). Pseudonymisation deferred.
+        description: PII (first name), pseudonymised. 64-char hex SHA-256 of (first_name || salt). NULL preserved.
       - name: last_name
-        description: PII (last name). Pseudonymisation deferred.
+        description: PII (last name), pseudonymised. Same scheme as first_name.
       - name: email
-        description: PII (email). Pseudonymisation deferred.
+        description: PII (email), pseudonymised. Same scheme. Deterministic, so joinable across pseudonymised tables that share the same salt.
         # Possible tests to debate after observing the actual data:
         # data_tests:
         #   - not_null            # TheLook may or may not have null emails — verify on first build
         #   - unique              # users may share an email in some sources — verify before locking
       - name: street_address
-        description: PII (street address). Pseudonymisation deferred.
+        description: PII (street address), pseudonymised. Same scheme.
 
       # ─── Non-PII attributes ─────────────────────────────────────
       - name: age
