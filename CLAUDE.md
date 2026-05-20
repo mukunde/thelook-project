@@ -15,6 +15,7 @@ Architecture principle: **Code-First**. Every component is declared as code unde
 │   └── oci/              # VCN, A1 VM, Bastion, quotas, budget
 ├── infra/docker/         # docker-compose stack (Caddy + Dagster + Metabase) for OCI
 ├── ingestion/            # dlt pipelines (uv workspace member). Sprint 1: users only.
+├── transformation/       # dbt project (uv workspace member). Sprint 1: stg_segment__users.
 ├── docs/
 │   ├── ADR/              # 10 ADRs (0000-0009)
 │   └── infrastructure-and-governance-phase-report.md
@@ -24,7 +25,7 @@ Architecture principle: **Code-First**. Every component is declared as code unde
 └── .github/workflows/    # python-ci.yml, terraform-ci.yml
 ```
 
-Future Phase 2 additions: `transformation/` (dbt), `orchestration/` (Dagster), `semantic/` (Cube), `bi/evidence/`, `notebooks/`.
+Future Phase 2 additions: `orchestration/` (Dagster), `semantic/` (Cube), `bi/evidence/`, `notebooks/`.
 
 ## Common commands
 
@@ -45,6 +46,14 @@ uv run ruff check .
 uv run ruff format .
 uv run mypy .
 
+# dbt (always run from transformation/ so dbt finds dbt_project.yml in cwd)
+cd transformation
+uv run dbt debug                                    # validate Snowflake connection (uses ~/.dbt/profiles.yml)
+uv run dbt parse                                    # validate Jinja + SQL syntax without hitting Snowflake
+uv run dbt build --select stg_segment__users       # compile + run + test a single model
+uv run dbt build --select tag:staging              # all staging models
+uv run dbt docs generate && uv run dbt docs serve  # local docs site
+
 # Pre-commit (runs on git commit; manual run available)
 pre-commit run --all-files
 ```
@@ -57,7 +66,8 @@ Terraform runs through Terraform Cloud (VCS-driven on push). No local `terraform
 - **Demo-on-demand Snowflake**: between active periods the warehouse is destroyed. During an active phase (currently in progress), warehouses are XS with 60s auto-suspend and a 10-credit/month resource monitor. Don't issue heavy SELECTs without realising they spin up `INGESTION_WH` / `TRANSFORM_WH` / `CONSUMER_WH` from cold.
 - **Cross-cloud ingestion**: source is on GCP, destination on AWS. Small egress cost on the BigQuery side. dlt's incremental cursor (`created_at`) and the `2023-01-01` cut-off keep this bounded.
 - **Secret files** that must NEVER be committed: `*.p8`, `*.pem`, `*.key`, `*-service-account.json`, `.dlt/secrets.toml`, `.env`. Already in `.gitignore` but stay vigilant.
-- **uv workspace**: root `pyproject.toml` declares `[tool.uv.workspace] members = ["ingestion"]`. Add new modules (`transformation`, `orchestration`, etc.) to this list as Phase 2 progresses, each with its own sub-`pyproject.toml`.
+- **dbt `profiles.yml`**: dbt expects credentials at `~/.dbt/profiles.yml` (user-level, never committed). Copy `transformation/profiles.yml.example` to `~/.dbt/profiles.yml` and fill in your Snowflake account, USER_DBT `private_key_path`, and personal `dbt_<initials>` schema. The repo only ships the example.
+- **uv workspace**: root `pyproject.toml` declares `[tool.uv.workspace] members = ["ingestion", "transformation"]`. Add new modules (`orchestration`, etc.) to this list as Phase 2 progresses, each with its own sub-`pyproject.toml`.
 
 ## Where to look for context
 

@@ -1,0 +1,36 @@
+# Copy this file to ~/.dbt/profiles.yml and fill in your local values.
+# ~/.dbt/profiles.yml is user-level config; never commit real credentials.
+#
+# dbt looks up profiles.yml in this order:
+#   1. $DBT_PROFILES_DIR (if set)
+#   2. ~/.dbt/profiles.yml  <-- standard location
+#
+# To validate the connection without running any model:
+#   cd transformation && dbt debug
+
+thelook:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: <YOUR_SNOWFLAKE_ACCOUNT>             # e.g. ORG-ACCOUNT new-format identifier
+      user: USER_DBT
+      role: ROLE_TRANSFORM
+      warehouse: TRANSFORM_WH
+      database: ANALYTICS_DEV
+      schema: dbt_<YOUR_INITIALS>                   # personal namespace, e.g. dbt_gm
+      private_key_path: <path-to-USER_DBT-private-key>.p8
+      threads: 4
+      client_session_keep_alive: false
+
+    prod:
+      type: snowflake
+      account: <YOUR_SNOWFLAKE_ACCOUNT>
+      user: USER_DBT
+      role: ROLE_TRANSFORM
+      warehouse: TRANSFORM_WH
+      database: ANALYTICS
+      schema: dbt_prod
+      private_key_path: <path-to-USER_DBT-private-key>.p8
+      threads: 4
+      client_session_keep_alive: false

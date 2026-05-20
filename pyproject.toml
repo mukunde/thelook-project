@@ -26,7 +26,7 @@ dev = [
 package = false
 
 [tool.uv.workspace]
-members = ["ingestion"]
+members = ["ingestion", "transformation"]
 
 # ──────────────────────────────────────────────────────────
 # Ruff — linter + formatter
