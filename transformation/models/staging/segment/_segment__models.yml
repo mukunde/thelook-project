@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: stg_segment__users
+    description: >
+      Staging model for Segment users. One row per user, with snake_case
+      naming, type casting, and audit columns appended. Source PII fields
+      are passed through unchanged — pseudonymisation is added in a
+      subsequent feature.
+
+    # ─── Optional: enforce a contract (column names + types) ─────
+    # Activated in a separate feature. For now, model evolves freely.
+    # config:
+    #   contract:
+    #     enforced: true
+
+    columns:
+      # ─── Primary key ─────────────────────────────────────────
+      - name: user_id
+        description: Surrogate primary key of the user, renamed from source `id`.
+        data_tests:
+          - not_null
+          - unique
+
+      # ─── PII columns (pseudonymisation deferred to a follow-up feature) ──
+      - name: first_name
+        description: PII (first name). Pseudonymisation deferred.
+      - name: last_name
+        description: PII (last name). Pseudonymisation deferred.
+      - name: email
+        description: PII (email). Pseudonymisation deferred.
+        # Possible tests to debate after observing the actual data:
+        # data_tests:
+        #   - not_null            # TheLook may or may not have null emails — verify on first build
+        #   - unique              # users may share an email in some sources — verify before locking
+      - name: street_address
+        description: PII (street address). Pseudonymisation deferred.
+
+      # ─── Non-PII attributes ─────────────────────────────────────
+      - name: age
+        description: Age at registration, in years.
+      - name: gender
+        description: Self-reported gender.
+        # Verify the actual distinct values in `RAW.THELOOK.users` before locking this:
+        # data_tests:
+        #   - accepted_values:
+        #       values: ['F', 'M']      # add 'Other' / 'Unknown' if observed
+        #       quote: true
+      - name: state
+        description: US state name.
+      - name: postal_code
+        description: ZIP code.
+      - name: city
+        description: City name.
+      - name: country
+        description: ISO 3166-1 alpha-2 country code.
+      - name: latitude
+        description: Geo-coordinate.
+      - name: longitude
+        description: Geo-coordinate.
+      - name: traffic_source
+        description: Acquisition channel at registration.
+
+      # ─── Renamed timestamp ──────────────────────────────────────
+      - name: registered_at
+        description: User registration timestamp, renamed from source `created_at`. Cut-off enforced upstream by dlt (>= 2023-01-01).
+        data_tests:
+          - not_null
+
+      # ─── Audit columns appended by dbt at materialisation time ──
+      - name: _loaded_at
+        description: Timestamp of dbt materialisation (`current_timestamp()` at run time).
+      - name: _dbt_invocation_id
+        description: Unique dbt invocation ID for this run (audit trail across all models of a single `dbt run`).

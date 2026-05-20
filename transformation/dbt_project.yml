@@ -1,0 +1,40 @@
+name: 'thelook_mds'
+version: '0.1.0'
+config-version: 2
+
+# Profile name (defined in ~/.dbt/profiles.yml). Selects target (dev: ANALYTICS_DEV,
+# prod: ANALYTICS) and Snowflake credentials.
+profile: 'thelook'
+
+# Minimum supported dbt version. Rejects older binaries with a clear error.
+require-dbt-version: [">=1.8.0"]
+
+# Standard paths (explicit for self-documentation; these are the defaults).
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+  - "logs"
+
+# Per-folder configuration.
+# Convention:
+#   - staging/ -> views   (renaming + casting only, lightweight)
+#   - marts/   -> tables  (denormalised, queried by BI / Cube)
+#
+# Custom schemas (staging, marts) require a generate_schema_name macro
+# override (macros/get_custom_schema.sql) to land cleanly in STAGING / MARTS
+# without the default <profile_schema>_<custom_schema> concatenation.
+models:
+  thelook_mds:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: marts

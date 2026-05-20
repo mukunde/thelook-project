@@ -1,0 +1,63 @@
+version: 2
+
+# Source declaration for the Segment CDP (simulated).
+# Physically: all `segment` tables live in RAW.THELOOK, populated by the single
+# dlt pipeline at ingestion/thelook_finance.py.
+# Narrative: in a real DTC stack, Segment CDP would aggregate customer identity
+# from web events, mobile SDK, support tickets, and marketing platforms, then
+# sync to Snowflake via Reverse ETL or its native warehouse connector.
+
+sources:
+  - name: segment
+    description: >
+      User profiles from Segment CDP, simulated via the public
+      `bigquery-public-data.thelook_ecommerce` dataset. See the project's ADR
+      on simulated source mapping for portfolio narrative (planned ADR-0010).
+
+    database: RAW
+    schema: THELOOK
+    loader: dlt
+
+    config:
+      # Freshness check disabled for now: _dlt_load_id is a string-encoded
+      # timestamp, not a TIMESTAMP type. Wire up freshness once a proper
+      # loaded_at field is available downstream.
+      freshness: null
+
+    tables:
+      - name: users
+        description: >
+          Unified customer profile. One row per user, created at first
+          identification (registration, first purchase, marketing opt-in).
+
+        columns:
+          - name: id
+            description: Surrogate primary key, stable across user lifetime.
+          - name: first_name
+            description: PII (first name). Pseudonymised downstream at the staging layer.
+          - name: last_name
+            description: PII (last name). Pseudonymised downstream.
+          - name: email
+            description: PII (email). Pseudonymised downstream.
+          - name: age
+            description: Age at registration, in years.
+          - name: gender
+            description: Self-reported gender (`F`, `M`, `Other`).
+          - name: state
+            description: US state (TheLook is a US dataset).
+          - name: street_address
+            description: PII (street address line). Pseudonymised downstream.
+          - name: postal_code
+            description: ZIP code.
+          - name: city
+            description: City name.
+          - name: country
+            description: ISO 3166-1 alpha-2 country code.
+          - name: latitude
+            description: Geo-coordinate of the registered address.
+          - name: longitude
+            description: Geo-coordinate of the registered address.
+          - name: traffic_source
+            description: Acquisition channel at registration (e.g., Email, Facebook, Organic, Search).
+          - name: created_at
+            description: User registration timestamp. Used as the incremental cursor by dlt (cut-off 2023-01-01).
