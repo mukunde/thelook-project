@@ -1,0 +1,53 @@
+version: 2
+
+# Source declaration for the Akeneo PIM (simulated).
+# Physically: all `akeneo` tables live in RAW.THELOOK, populated by the single
+# dlt pipeline at ingestion/thelook_finance.py.
+# Narrative: in a real DTC stack, Akeneo PIM holds the product catalogue
+# (attributes, categories, brands, pricing). The data is synced to the data
+# warehouse via Akeneo's REST API or a daily SFTP export. dlt uses
+# write_disposition='replace' for this source because Akeneo doesn't expose
+# row-level created_at/updated_at lineage in our scope.
+# See docs/ADR/0010-simulated-source-mapping.md.
+
+sources:
+  - name: akeneo
+    description: >
+      Product catalogue data from Akeneo PIM, simulated via the public
+      `bigquery-public-data.thelook_ecommerce` dataset.
+
+    database: RAW
+    schema: THELOOK
+    loader: dlt
+
+    config:
+      # Freshness check disabled; see _segment__sources.yml for the same
+      # rationale.
+      freshness: null
+
+    tables:
+      - name: products
+        description: >
+          One row per product SKU in the catalogue. Stable dimension table
+          ingested by dlt with write_disposition='replace' (full-refresh on
+          every run; no timestamp lineage on the source).
+
+        columns:
+          - name: id
+            description: Surrogate primary key of the product. Renamed to `product_id` in the staging layer.
+          - name: cost
+            description: Product cost of goods (USD). Used to compute gross_margin in Finance marts.
+          - name: category
+            description: Product category (e.g., "Sleep & Lounge", "Activewear").
+          - name: name
+            description: Product name as displayed in the catalogue.
+          - name: brand
+            description: Brand name attached to the product.
+          - name: retail_price
+            description: Suggested retail price of the product (USD).
+          - name: department
+            description: Top-level department (e.g., "Women", "Men").
+          - name: sku
+            description: Stock-Keeping Unit code — uniquely identifies a sellable variant.
+          - name: distribution_center_id
+            description: Foreign key to the distribution center where this product is stocked.
