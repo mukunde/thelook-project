@@ -27,6 +27,8 @@ addopts = [
   "-ra",
   "--strict-markers",
   "--strict-config",
+  # Skip integration tests by default. Run them explicitly with `pytest -m integration`.
+  "-m", "not integration",
 ]
 markers = [
   "integration: requires real Snowflake + GCP credentials. Skipped by default; run with `pytest -m integration`.",

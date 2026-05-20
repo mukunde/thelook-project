@@ -15,12 +15,15 @@ from datetime import UTC, datetime
 
 import pytest
 
+EXPECTED_RESOURCES = ("users", "orders", "order_items", "products")
+
 
 def test_module_imports_and_exposes_expected_symbols() -> None:
     module = importlib.import_module("thelook_finance")
     assert module.PIPELINE_NAME == "thelook_finance"
     assert module.DATASET_NAME == "thelook"
-    assert hasattr(module, "users"), "users resource is exposed"
+    for resource_name in EXPECTED_RESOURCES:
+        assert hasattr(module, resource_name), f"{resource_name} resource is exposed"
     assert hasattr(module, "run_pipeline"), "run_pipeline callable is exposed"
 
 
@@ -31,7 +34,7 @@ def test_cutoff_is_2023_01_01_utc() -> None:
 
 
 @pytest.mark.integration
-def test_pipeline_run_loads_users_to_snowflake() -> None:
+def test_pipeline_run_loads_all_finance_tables_to_snowflake() -> None:
     """End-to-end: runs the pipeline against real Snowflake + GCP.
 
     Requires:
