@@ -9,16 +9,15 @@ models:
       via SHA-256 + salt (see `macros/pseudonymise.sql`). The salt is
       read from the env var DBT_PSEUDONYMISATION_SALT at compile time.
 
-    # ─── Optional: enforce a contract (column names + types) ─────
-    # Activated in a separate feature. For now, model evolves freely.
-    # config:
-    #   contract:
-    #     enforced: true
+    config:
+      contract:
+        enforced: true
 
     columns:
       # ─── Primary key ─────────────────────────────────────────
       - name: user_id
         description: Surrogate primary key of the user, renamed from source `id`.
+        data_type: NUMBER
         data_tests:
           - not_null
           - unique
@@ -26,22 +25,28 @@ models:
       # ─── PII columns: pseudonymised via SHA-256 + salt (macros/pseudonymise.sql) ──
       - name: first_name
         description: PII (first name), pseudonymised. 64-char hex SHA-256 of (first_name || salt). NULL preserved.
+        data_type: VARCHAR
       - name: last_name
         description: PII (last name), pseudonymised. Same scheme as first_name.
+        data_type: VARCHAR
       - name: email
         description: PII (email), pseudonymised. Same scheme. Deterministic, so joinable across pseudonymised tables that share the same salt.
+        data_type: VARCHAR
         # Possible tests to debate after observing the actual data:
         # data_tests:
         #   - not_null            # TheLook may or may not have null emails — verify on first build
         #   - unique              # users may share an email in some sources — verify before locking
       - name: street_address
         description: PII (street address), pseudonymised. Same scheme.
+        data_type: VARCHAR
 
       # ─── Non-PII attributes ─────────────────────────────────────
       - name: age
         description: Age at registration, in years.
+        data_type: NUMBER
       - name: gender
         description: Self-reported gender.
+        data_type: VARCHAR
         # Verify the actual distinct values in `RAW.THELOOK.users` before locking this:
         # data_tests:
         #   - accepted_values:
@@ -49,27 +54,37 @@ models:
         #       quote: true
       - name: state
         description: US state name.
+        data_type: VARCHAR
       - name: postal_code
         description: ZIP code.
+        data_type: VARCHAR
       - name: city
         description: City name.
+        data_type: VARCHAR
       - name: country
         description: ISO 3166-1 alpha-2 country code.
+        data_type: VARCHAR
       - name: latitude
         description: Geo-coordinate.
+        data_type: FLOAT
       - name: longitude
         description: Geo-coordinate.
+        data_type: FLOAT
       - name: traffic_source
         description: Acquisition channel at registration.
+        data_type: VARCHAR
 
       # ─── Renamed timestamp ──────────────────────────────────────
       - name: registered_at
         description: User registration timestamp, renamed from source `created_at`. Cut-off enforced upstream by dlt (>= 2023-01-01).
+        data_type: TIMESTAMP_TZ
         data_tests:
           - not_null
 
       # ─── Audit columns appended by dbt at materialisation time ──
       - name: _loaded_at
         description: Timestamp of dbt materialisation (`current_timestamp()` at run time).
+        data_type: TIMESTAMP_LTZ
       - name: _dbt_invocation_id
         description: Unique dbt invocation ID for this run (audit trail across all models of a single `dbt run`).
+        data_type: VARCHAR

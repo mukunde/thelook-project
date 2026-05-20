@@ -7,15 +7,21 @@ models:
       naming, type casting, business-meaningful timestamp rename
       (`created_at` -> `ordered_at`), and audit columns.
 
+    config:
+      contract:
+        enforced: true
+
     columns:
       - name: order_id
         description: Surrogate primary key of the order.
+        data_type: NUMBER
         data_tests:
           - not_null
           - unique
 
       - name: user_id
         description: Foreign key to the customer who placed the order.
+        data_type: NUMBER
         # Possible test once stg_segment__users is in scope as a ref:
         # data_tests:
         #   - relationships:
@@ -24,6 +30,7 @@ models:
 
       - name: status
         description: Order lifecycle status.
+        data_type: VARCHAR
         # Verify the actual distinct values before locking:
         # data_tests:
         #   - accepted_values:
@@ -32,24 +39,32 @@ models:
 
       - name: gender
         description: Gender on the order (legacy denormalized from user).
+        data_type: VARCHAR
       - name: num_of_item
         description: Number of items in the order.
+        data_type: NUMBER
       - name: shipped_at
         description: Timestamp shipped (NULL until shipped).
+        data_type: TIMESTAMP_TZ
       - name: delivered_at
         description: Timestamp delivered (NULL until delivered).
+        data_type: TIMESTAMP_TZ
       - name: returned_at
         description: Timestamp returned (NULL unless returned).
+        data_type: TIMESTAMP_TZ
 
       - name: ordered_at
         description: Timestamp of order placement, renamed from source `created_at`.
+        data_type: TIMESTAMP_TZ
         data_tests:
           - not_null
 
       - name: _loaded_at
         description: Timestamp of dbt materialisation.
+        data_type: TIMESTAMP_LTZ
       - name: _dbt_invocation_id
         description: Unique dbt invocation ID for this run.
+        data_type: VARCHAR
 
   - name: stg_shopify__order_items
     description: >
@@ -59,38 +74,55 @@ models:
       renamed to `order_item_id` to disambiguate when joined with
       stg_shopify__orders and stg_akeneo__products downstream.
 
+    config:
+      contract:
+        enforced: true
+
     columns:
       - name: order_item_id
         description: Surrogate primary key of the order item, renamed from source `id`.
+        data_type: NUMBER
         data_tests:
           - not_null
           - unique
 
       - name: order_id
         description: Foreign key to the parent order.
+        data_type: NUMBER
       - name: user_id
         description: Foreign key to the user.
+        data_type: NUMBER
       - name: product_id
         description: Foreign key to the product.
+        data_type: NUMBER
       - name: inventory_item_id
         description: Foreign key to the inventory unit consumed.
+        data_type: NUMBER
       - name: status
         description: Item lifecycle status.
+        data_type: VARCHAR
       - name: sale_price
         description: Selling price of the item (USD). Used in Finance marts for net_revenue.
+        data_type: FLOAT
       - name: shipped_at
         description: Timestamp the item was shipped.
+        data_type: TIMESTAMP_TZ
       - name: delivered_at
         description: Timestamp the item was delivered.
+        data_type: TIMESTAMP_TZ
       - name: returned_at
         description: Timestamp the item was returned (NULL unless returned).
+        data_type: TIMESTAMP_TZ
 
       - name: ordered_at
         description: Timestamp of order-item creation, renamed from source `created_at`.
+        data_type: TIMESTAMP_TZ
         data_tests:
           - not_null
 
       - name: _loaded_at
         description: Timestamp of dbt materialisation.
+        data_type: TIMESTAMP_LTZ
       - name: _dbt_invocation_id
         description: Unique dbt invocation ID for this run.
+        data_type: VARCHAR

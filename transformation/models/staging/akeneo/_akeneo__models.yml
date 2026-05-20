@@ -8,27 +8,39 @@ models:
       casting, PK renamed (`id` -> `product_id`), and audit columns.
       No timestamp rename here because the source has no timestamp.
 
+    config:
+      contract:
+        enforced: true
+
     columns:
       - name: product_id
         description: Surrogate primary key of the product, renamed from source `id`.
+        data_type: NUMBER
         data_tests:
           - not_null
           - unique
 
       - name: cost
         description: Product COGS (USD).
+        data_type: FLOAT
       - name: category
         description: Product category.
+        data_type: VARCHAR
       - name: name
         description: Product display name.
+        data_type: VARCHAR
       - name: brand
         description: Product brand.
+        data_type: VARCHAR
       - name: retail_price
         description: Suggested retail price (USD).
+        data_type: FLOAT
       - name: department
         description: Top-level department.
+        data_type: VARCHAR
       - name: sku
         description: Stock-Keeping Unit code.
+        data_type: VARCHAR
         # `sku` is technically the alternate business identifier — most
         # catalogues have unique SKUs. Verify and add `unique` if confirmed:
         # data_tests:
@@ -36,8 +48,11 @@ models:
 
       - name: distribution_center_id
         description: Foreign key to the distribution center.
+        data_type: NUMBER
 
       - name: _loaded_at
         description: Timestamp of dbt materialisation.
+        data_type: TIMESTAMP_LTZ
       - name: _dbt_invocation_id
         description: Unique dbt invocation ID for this run.
+        data_type: VARCHAR
