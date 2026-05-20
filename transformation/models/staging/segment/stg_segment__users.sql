@@ -13,12 +13,14 @@ renamed as (
     select
         id::integer as user_id,
         ----------------------------------------------------------------
-        -- PII columns (pseudonymisation deferred)
+        -- PII columns: pseudonymised via SHA-256 + salt (macros/pseudonymise.sql).
+        -- Salt is read from env var DBT_PSEUDONYMISATION_SALT at compile time.
+        -- Output is a deterministic 64-char hex string (NULL preserved).
         ----------------------------------------------------------------
-        first_name,
-        last_name,
-        email,
-        street_address,
+        {{ pseudonymise('first_name') }} as first_name,
+        {{ pseudonymise('last_name') }} as last_name,
+        {{ pseudonymise('email') }} as email,
+        {{ pseudonymise('street_address') }} as street_address,
         ----------------------------------------------------------------
         -- Non-PII attributes
         ----------------------------------------------------------------
