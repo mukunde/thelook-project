@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: stg_akeneo__products
+    description: >
+      Staging model for Akeneo products (one row per SKU). Same conventions
+      as the Segment + Shopify staging models: snake_case naming, type
+      casting, PK renamed (`id` -> `product_id`), and audit columns.
+      No timestamp rename here because the source has no timestamp.
+
+    columns:
+      - name: product_id
+        description: Surrogate primary key of the product, renamed from source `id`.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: cost
+        description: Product COGS (USD).
+      - name: category
+        description: Product category.
+      - name: name
+        description: Product display name.
+      - name: brand
+        description: Product brand.
+      - name: retail_price
+        description: Suggested retail price (USD).
+      - name: department
+        description: Top-level department.
+      - name: sku
+        description: Stock-Keeping Unit code.
+        # `sku` is technically the alternate business identifier — most
+        # catalogues have unique SKUs. Verify and add `unique` if confirmed:
+        # data_tests:
+        #   - unique
+
+      - name: distribution_center_id
+        description: Foreign key to the distribution center.
+
+      - name: _loaded_at
+        description: Timestamp of dbt materialisation.
+      - name: _dbt_invocation_id
+        description: Unique dbt invocation ID for this run.

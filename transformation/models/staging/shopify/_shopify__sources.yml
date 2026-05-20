@@ -1,0 +1,83 @@
+version: 2
+
+# Source declaration for the Shopify Plus commerce platform (simulated).
+# Physically: all `shopify` tables live in RAW.THELOOK, populated by the
+# single dlt pipeline at ingestion/thelook_finance.py.
+# Narrative: in a real DTC stack, Shopify Plus is the e-commerce backbone
+# that captures every order and its constituent line items. Both tables
+# share the same upstream connector (Shopify webhooks + bulk API) and the
+# same `created_at` lineage, hence their grouping under a single source.
+# See docs/ADR/0010-simulated-source-mapping.md.
+
+sources:
+  - name: shopify
+    description: >
+      Order and order-item data from Shopify Plus, simulated via the public
+      `bigquery-public-data.thelook_ecommerce` dataset.
+
+    database: RAW
+    schema: THELOOK
+    loader: dlt
+
+    config:
+      # Freshness check disabled; see _segment__sources.yml for the same
+      # rationale (no TIMESTAMP loaded_at field yet).
+      freshness: null
+
+    tables:
+      - name: orders
+        description: >
+          One row per order placed by a user. Primary key is `order_id`
+          (not `id` — Shopify exposes it explicitly, and dlt landed it as-is
+          from BigQuery TheLook). Status is the order lifecycle stage.
+
+        columns:
+          - name: order_id
+            description: Surrogate primary key of the order.
+          - name: user_id
+            description: Foreign key to the user who placed the order.
+          - name: status
+            description: Order lifecycle status (`Processing`, `Shipped`, `Complete`, `Cancelled`, `Returned`).
+          - name: gender
+            description: Gender associated with the order (denormalized from the user, for legacy reporting compatibility).
+          - name: num_of_item
+            description: Number of line items in the order (denormalized count).
+          - name: created_at
+            description: Timestamp of order placement. Incremental cursor used by dlt (cut-off 2023-01-01).
+          - name: shipped_at
+            description: Timestamp the order was shipped. NULL until the order ships.
+          - name: delivered_at
+            description: Timestamp the order was delivered. NULL until delivery.
+          - name: returned_at
+            description: Timestamp the order was returned. NULL unless the order was returned.
+
+      - name: order_items
+        description: >
+          One row per (order, item) pair — the fine-grain transactional
+          table. This is what Finance marts aggregate over for revenue
+          calculations (sale_price × quantity is implicit since each row is
+          one item).
+
+        columns:
+          - name: id
+            description: Surrogate primary key of the order item. Renamed to `order_item_id` in the staging layer.
+          - name: order_id
+            description: Foreign key to the parent order in `orders`.
+          - name: user_id
+            description: Foreign key to the user (denormalized from the parent order).
+          - name: product_id
+            description: Foreign key to the product in `products`.
+          - name: inventory_item_id
+            description: Foreign key to the inventory unit consumed by this order item.
+          - name: status
+            description: Item lifecycle status (mirrors the order status, but can diverge for partial returns).
+          - name: sale_price
+            description: Selling price of the item at the time of the order (USD). Used to compute `net_revenue` in Finance marts.
+          - name: created_at
+            description: Timestamp of the order-item creation (same lineage as the parent order). Incremental cursor used by dlt.
+          - name: shipped_at
+            description: Timestamp the item was shipped (can differ from order.shipped_at in case of split shipments).
+          - name: delivered_at
+            description: Timestamp the item was delivered.
+          - name: returned_at
+            description: Timestamp the item was returned. NULL unless returned.

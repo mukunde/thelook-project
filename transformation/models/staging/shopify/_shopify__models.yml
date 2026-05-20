@@ -1,0 +1,96 @@
+version: 2
+
+models:
+  - name: stg_shopify__orders
+    description: >
+      Staging model for Shopify orders. One row per order, with snake_case
+      naming, type casting, business-meaningful timestamp rename
+      (`created_at` -> `ordered_at`), and audit columns.
+
+    columns:
+      - name: order_id
+        description: Surrogate primary key of the order.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: user_id
+        description: Foreign key to the customer who placed the order.
+        # Possible test once stg_segment__users is in scope as a ref:
+        # data_tests:
+        #   - relationships:
+        #       to: ref('stg_segment__users')
+        #       field: user_id
+
+      - name: status
+        description: Order lifecycle status.
+        # Verify the actual distinct values before locking:
+        # data_tests:
+        #   - accepted_values:
+        #       values: ['Processing', 'Shipped', 'Complete', 'Cancelled', 'Returned']
+        #       quote: true
+
+      - name: gender
+        description: Gender on the order (legacy denormalized from user).
+      - name: num_of_item
+        description: Number of items in the order.
+      - name: shipped_at
+        description: Timestamp shipped (NULL until shipped).
+      - name: delivered_at
+        description: Timestamp delivered (NULL until delivered).
+      - name: returned_at
+        description: Timestamp returned (NULL unless returned).
+
+      - name: ordered_at
+        description: Timestamp of order placement, renamed from source `created_at`.
+        data_tests:
+          - not_null
+
+      - name: _loaded_at
+        description: Timestamp of dbt materialisation.
+      - name: _dbt_invocation_id
+        description: Unique dbt invocation ID for this run.
+
+  - name: stg_shopify__order_items
+    description: >
+      Staging model for Shopify order items (one row per (order, item) pair).
+      Same conventions as orders: snake_case, casting, rename
+      `created_at` -> `ordered_at`, audit columns. The source `id` is
+      renamed to `order_item_id` to disambiguate when joined with
+      stg_shopify__orders and stg_akeneo__products downstream.
+
+    columns:
+      - name: order_item_id
+        description: Surrogate primary key of the order item, renamed from source `id`.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: order_id
+        description: Foreign key to the parent order.
+      - name: user_id
+        description: Foreign key to the user.
+      - name: product_id
+        description: Foreign key to the product.
+      - name: inventory_item_id
+        description: Foreign key to the inventory unit consumed.
+      - name: status
+        description: Item lifecycle status.
+      - name: sale_price
+        description: Selling price of the item (USD). Used in Finance marts for net_revenue.
+      - name: shipped_at
+        description: Timestamp the item was shipped.
+      - name: delivered_at
+        description: Timestamp the item was delivered.
+      - name: returned_at
+        description: Timestamp the item was returned (NULL unless returned).
+
+      - name: ordered_at
+        description: Timestamp of order-item creation, renamed from source `created_at`.
+        data_tests:
+          - not_null
+
+      - name: _loaded_at
+        description: Timestamp of dbt materialisation.
+      - name: _dbt_invocation_id
+        description: Unique dbt invocation ID for this run.
