@@ -1,0 +1,85 @@
+version: 2
+
+models:
+  - name: dim_users
+    description: >
+      Conformed user dimension. One row per user identified by `user_id`.
+      Consumed by Finance, Marketing, and Operations marts as well as BI
+      tools (Cube, Metabase, Evidence). PII columns (first_name, last_name,
+      email, street_address) are already pseudonymised at the staging layer
+      via SHA-256 + salt — no plaintext PII ever lands in the marts layer.
+
+    config:
+      contract:
+        enforced: true
+
+    columns:
+      # ─── Primary key ─────────────────────────────────────────
+      - name: user_id
+        description: Natural primary key of the user, propagated from `stg_segment__users.user_id`.
+        data_type: NUMBER
+        data_tests:
+          - not_null
+          - unique
+
+      # ─── PII (pseudonymised upstream) ──────────────────────────
+      - name: first_name
+        description: PII (first name), pseudonymised SHA-256 + salt.
+        data_type: VARCHAR
+      - name: last_name
+        description: PII (last name), pseudonymised SHA-256 + salt.
+        data_type: VARCHAR
+      - name: email
+        description: PII (email), pseudonymised SHA-256 + salt. Deterministic — joinable across pseudonymised tables sharing the same salt.
+        data_type: VARCHAR
+      - name: street_address
+        description: PII (street address), pseudonymised SHA-256 + salt.
+        data_type: VARCHAR
+
+      # ─── Demographic attributes ──────────────────────────────────
+      - name: age
+        description: Age at registration, in years.
+        data_type: NUMBER
+      - name: gender
+        description: Self-reported gender (`F`, `M`, or NULL).
+        data_type: VARCHAR
+
+      # ─── Geo attributes ─────────────────────────────────────────
+      - name: state
+        description: US state name.
+        data_type: VARCHAR
+      - name: postal_code
+        description: ZIP code.
+        data_type: VARCHAR
+      - name: city
+        description: City name.
+        data_type: VARCHAR
+      - name: country
+        description: ISO 3166-1 alpha-2 country code.
+        data_type: VARCHAR
+      - name: latitude
+        description: Geo-coordinate of the registered address.
+        data_type: FLOAT
+      - name: longitude
+        description: Geo-coordinate of the registered address.
+        data_type: FLOAT
+
+      # ─── Acquisition ─────────────────────────────────────────────
+      - name: traffic_source
+        description: Acquisition channel at registration (e.g., Email, Facebook, Organic, Search).
+        data_type: VARCHAR
+
+      # ─── Business timestamp ─────────────────────────────────────
+      - name: registered_at
+        description: User registration timestamp. Source of truth for "when did this user sign up".
+        data_type: TIMESTAMP_TZ
+        data_tests:
+          - not_null
+
+      # ─── Audit columns (regenerated at mart-build time) ──────────
+      - name: _loaded_at
+        description: Timestamp when this row was materialised into `dim_users` (mart-build time, not propagated from staging).
+        data_type: TIMESTAMP_LTZ
+      - name: _dbt_invocation_id
+        description: Unique dbt invocation ID for the mart-build that produced this row.
+        data_type: VARCHAR
