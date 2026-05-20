@@ -83,3 +83,65 @@ models:
       - name: _dbt_invocation_id
         description: Unique dbt invocation ID for the mart-build that produced this row.
         data_type: VARCHAR
+
+  - name: dim_products
+    description: >
+      Conformed product dimension. One row per product (SKU) identified by
+      `product_id`. Consumed by Finance, Marketing, and Operations marts
+      and BI tools. Holds the catalogue attributes (category, brand,
+      department, SKU) plus the financials needed for margin / revenue
+      calculations downstream (cost, retail_price).
+
+    config:
+      contract:
+        enforced: true
+
+    columns:
+      # ─── Primary key ─────────────────────────────────────────
+      - name: product_id
+        description: Natural primary key of the product, propagated from `stg_akeneo__products.product_id`.
+        data_type: NUMBER
+        data_tests:
+          - not_null
+          - unique
+
+      # ─── Financials ──────────────────────────────────────────
+      - name: cost
+        description: Product cost of goods (USD).
+        data_type: FLOAT
+      - name: retail_price
+        description: Suggested retail price (USD).
+        data_type: FLOAT
+
+      # ─── Categorical attributes ──────────────────────────────
+      - name: category
+        description: Product category (e.g., "Sleep & Lounge", "Activewear").
+        data_type: VARCHAR
+      - name: name
+        description: Product display name.
+        data_type: VARCHAR
+      - name: brand
+        description: Product brand.
+        data_type: VARCHAR
+      - name: department
+        description: Top-level department (e.g., "Women", "Men").
+        data_type: VARCHAR
+      - name: sku
+        description: Stock-Keeping Unit code — uniquely identifies a sellable variant.
+        data_type: VARCHAR
+        # Verify unique SKUs on first build:
+        # data_tests:
+        #   - unique
+
+      # ─── Foreign key ─────────────────────────────────────────
+      - name: distribution_center_id
+        description: Foreign key to the distribution center where this product is stocked.
+        data_type: NUMBER
+
+      # ─── Audit columns (regenerated at mart-build time) ──────────
+      - name: _loaded_at
+        description: Timestamp when this row was materialised into `dim_products` (mart-build time, not propagated from staging).
+        data_type: TIMESTAMP_LTZ
+      - name: _dbt_invocation_id
+        description: Unique dbt invocation ID for the mart-build that produced this row.
+        data_type: VARCHAR
