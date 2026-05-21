@@ -67,6 +67,11 @@ terraform.rc
 .dlt/secrets.toml
 profiles.yml
 
+# Exception: the CI dummy profile is safe to commit (no credentials, only
+# dummy values to satisfy dbt's profile-parsing layer when --empty-catalog
+# is passed to `dbt docs generate` in the GitHub Actions workflow).
+!transformation/.dbt-ci/profiles.yml
+
 # GCP / BigQuery service accounts (source dlt)
 credentials.json
 service-account*.json
