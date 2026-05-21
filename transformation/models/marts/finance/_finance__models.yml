@@ -33,24 +33,21 @@ models:
           - not_null
 
       - name: user_id
-        description: Foreign key to `dim_users`. Relationships test active in WARN mode (see note below).
+        description: Foreign key to `dim_users`. Relationships test enforced (ERROR severity).
         data_type: NUMBER
         data_tests:
           - not_null
-          # Known data quality finding (Sprint dbt #13, 2026-05-21):
-          # ~77k order_items reference user_ids created BEFORE the dlt cutoff
-          # (2023-01-01) on the users source. These historical users are
-          # absent from stg_segment__users (and therefore dim_users), so the
-          # relationships test would fail on every build.
-          # Severity downgraded to WARN to keep the finding visible without
-          # blocking the build. To promote back to ERROR: remove the dlt
-          # cutoff on the `users` source so all historical users are ingested.
+          # Historical note: this test once surfaced ~77k FK orphans because
+          # the users source had an incremental cutoff at 2023-01-01 that
+          # excluded historical users. Resolved by `fix(ingestion): remove
+          # cutoff on users dimension` (2026-05-21), which switched the
+          # users resource to write_disposition='replace' (full-refresh of
+          # the dimension on every run). Severity restored to ERROR — the
+          # test now fails if any orphan reappears, signaling a regression.
           - relationships:
               arguments:
                 to: ref('dim_users')
                 field: user_id
-              config:
-                severity: warn
 
       - name: product_id
         description: Foreign key to `dim_products`.
