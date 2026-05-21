@@ -2,7 +2,7 @@
 
 > A hands-on modern data stack built around the public [TheLook eCommerce](https://console.cloud.google.com/marketplace/product/bigquery-public-data/thelook-ecommerce) dataset. Snowflake as the single analytic engine, Dagster + Metabase running always-on on OCI Free Tier, the whole platform declared via Terraform.
 
-**Status:** Phase 1 (Infrastructure & Governance) closed. Snowflake RBAC, OCI VM, Terraform Cloud workflows, and 10 ADRs are in place. See [`docs/infrastructure-and-governance-phase-report.md`](docs/infrastructure-and-governance-phase-report.md). Phase 2 (data engineering: ingestion, transformation, semantic layer, BI) is in progress.
+**Status:** Phase 1 (Infrastructure & Governance) closed: Snowflake RBAC, OCI VM, Terraform Cloud workflows, 11 ADRs. See the [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md). Phase 2 (data engineering) in progress: dlt ingestion and dbt Finance marts are live in `ANALYTICS_DEV`. Cube semantic layer is next.
 
 ---
 
@@ -17,6 +17,24 @@ The following surfaces are produced by Phase 2. Phase 1 delivered the platform u
 | Evidence.dev dashboard | `https://<project>.vercel.app` | Always-on (Vercel, static), Phase 2 |
 | dbt docs | `https://<user>.github.io/<repo>/` | GitHub Pages, Phase 2 |
 | Walk-through video | Loom link | Phase 2 |
+
+---
+
+## Finance domain status
+
+The Finance domain is currently live in dev (Snowflake `ANALYTICS_DEV.dbt_<initials>_marts`). It exposes the following Kimball-style modelled tables, all contract-enforced, all tests passing:
+
+| Mart | Type | Grain | Notes |
+|---|---|---|---|
+| `dim_users` | dim | one row per user | Conformed. PII (first_name, last_name, email, street_address) pseudonymised SHA-256 + salt at staging |
+| `dim_products` | dim | one row per SKU | Conformed |
+| `dim_dates` | dim | one row per calendar day | Synthetic, generated via `dbt_utils.date_spine`, covers 2023-01-01 to current_date + 2 years |
+| `fct_order_items` | fact | one row per (order, item) pair | Exposes `net_revenue`, `gross_margin`, `gross_margin_rate`, `is_returned`, `is_delivered`, `days_to_delivery` |
+| `fct_orders` | fact | one row per order | Aggregated from `fct_order_items`. Exposes `items_count`, `total_revenue_net`, `total_gross_margin`, `gross_margin_rate`, `is_fully_returned`, `is_partially_returned`, `average_item_price` |
+
+Business metrics are defined once at the finest grain (`fct_order_items`) and propagated upwards by aggregation (`fct_orders`), so `net_revenue` has a single canonical definition (sale_price when item status is not 'Returned', else 0). See [ADR-0010](docs/ADR/0010-simulated-source-mapping.md) for the narrative source mapping (Segment / Akeneo / Reflex / NetSuite / Shopify Plus / Snowplow + GA4) layered on top of the public TheLook dataset.
+
+Next sprint exposes these metrics via a Cube Cloud semantic layer ([ADR-0007](docs/ADR/0007-semantic-layer-cube-cloud.md)). Once Cube is wired, the marts feed Metabase (live, OCI) and Evidence.dev (static, Vercel) from a single source of metric truth.
 
 ---
 
@@ -78,11 +96,15 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Ver
 ```
 .
 ├── README.md                                      ← this file
+├── CLAUDE.md                                      ← context for AI assistants in this repo
 ├── LICENSE
-├── pyproject.toml                                 ← root Python tooling (ruff, mypy, pytest) via uv
+├── pyproject.toml                                 ← root Python tooling (ruff, mypy, pytest) + uv workspace
+├── uv.lock                                        ← reproducible Python deps
 ├── .gitignore
+├── ingestion/                                     ← dlt pipelines (uv workspace member), Finance scope live
+├── transformation/                                ← dbt project (uv workspace member), Finance staging + marts live
 ├── docs/
-│   ├── ADR/                                       ← Architecture Decision Records (ADR-0000 to 0009)
+│   ├── ADR/                                       ← Architecture Decision Records (ADR-0000 to ADR-0010)
 │   └── infrastructure-and-governance-phase-report.md   ← Phase 1 closure report
 ├── infra/
 │   └── terraform/
@@ -92,7 +114,7 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Ver
     └── workflows/                                 ← Python CI, Terraform CI
 ```
 
-Phase 2 will add `ingestion/` (dlt), `transformation/` (dbt), `orchestration/` (Dagster), `semantic/` (Cube), `bi/` (Evidence), `notebooks/`, and `infra/docker/` (Docker Compose stack for the OCI VM).
+Future Phase 2 additions (not yet present): `orchestration/` (Dagster), `semantic/` (Cube), `bi/` (Evidence), `notebooks/`, and `infra/docker/` (Docker Compose stack for the OCI VM).
 
 ## Getting Started
 
