@@ -137,3 +137,113 @@ models:
       - name: _dbt_invocation_id
         description: Unique dbt invocation ID for the mart-build that produced this row.
         data_type: VARCHAR
+
+  - name: fct_orders
+    description: >
+      Order-level aggregated fact table. Grain: one row per order.
+      Aggregates fct_order_items (sum / count / avg of the cleaned facts)
+      and joins stg_shopify__orders for order-level attributes (status,
+      gender, event timestamps). Reuses the net_revenue definition from
+      fct_order_items — that's the canonical "net of returns" metric of
+      the Finance domain. fct_orders is what BI executive dashboards
+      and Cube net_revenue / avg_order_value measures will query.
+
+    config:
+      contract:
+        enforced: true
+
+    columns:
+      # ─── Primary key ─────────────────────────────────────────
+      - name: order_id
+        description: Surrogate primary key of the order, propagated from fct_order_items.
+        data_type: NUMBER
+        data_tests:
+          - not_null
+          - unique
+
+      # ─── Foreign keys to dimensions ──────────────────────────
+      - name: user_id
+        description: Foreign key to `dim_users` (the customer who placed the order).
+        data_type: NUMBER
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_users')
+                field: user_id
+
+      - name: ordered_date
+        description: Foreign key to `dim_dates`, derived from `ordered_at::date`.
+        data_type: DATE
+        data_tests:
+          - not_null
+
+      - name: delivered_date
+        description: Foreign key to `dim_dates`, derived from `delivered_at::date`. NULL until delivered.
+        data_type: DATE
+
+      # ─── Order-level attributes (from stg_shopify__orders) ────
+      - name: status
+        description: Order lifecycle status at the order level (may differ from individual item statuses in case of partial returns).
+        data_type: VARCHAR
+      - name: gender
+        description: Gender on the order (legacy denormalized from user at the source).
+        data_type: VARCHAR
+      - name: ordered_at
+        description: Timestamp the order was placed.
+        data_type: TIMESTAMP_TZ
+      - name: shipped_at
+        description: Timestamp the order was shipped (NULL until shipped).
+        data_type: TIMESTAMP_TZ
+      - name: delivered_at
+        description: Timestamp the order was delivered (NULL until delivered).
+        data_type: TIMESTAMP_TZ
+      - name: returned_at
+        description: Timestamp the order was returned (NULL unless returned).
+        data_type: TIMESTAMP_TZ
+
+      # ─── Aggregated counts ───────────────────────────────────
+      - name: items_count
+        description: Number of items in the order (COUNT of fct_order_items rows for this order_id).
+        data_type: NUMBER
+      - name: returned_items_count
+        description: Number of items in the order that were returned (SUM of is_returned over items).
+        data_type: NUMBER
+
+      # ─── Derived return flags ────────────────────────────────
+      - name: is_fully_returned
+        description: TRUE if every item in the order was returned (items_count = returned_items_count).
+        data_type: BOOLEAN
+      - name: is_partially_returned
+        description: TRUE if at least one but not all items were returned. FALSE if 0 returns or all returns.
+        data_type: BOOLEAN
+
+      # ─── Aggregated financials ───────────────────────────────
+      - name: total_revenue_gross
+        description: SUM(sale_price) over the items. Gross revenue, before netting returns.
+        data_type: FLOAT
+      - name: total_revenue_net
+        description: SUM(net_revenue) over the items. The Finance-headline revenue metric, net of returns.
+        data_type: FLOAT
+      - name: total_cost
+        description: SUM(cost) over the items.
+        data_type: FLOAT
+      - name: total_gross_margin
+        description: SUM(gross_margin) over the items. total_revenue_net - total_cost.
+        data_type: FLOAT
+      - name: gross_margin_rate
+        description: total_gross_margin / total_revenue_net. NULL when net revenue is 0 (fully-returned orders) to avoid division-by-zero.
+        data_type: FLOAT
+
+      # ─── Aggregated averages ─────────────────────────────────
+      - name: average_item_price
+        description: AVG(sale_price) over the items in the order.
+        data_type: FLOAT
+
+      # ─── Audit columns (regenerated at mart-build time) ──────────
+      - name: _loaded_at
+        description: Timestamp when this row was materialised into `fct_orders`.
+        data_type: TIMESTAMP_LTZ
+      - name: _dbt_invocation_id
+        description: Unique dbt invocation ID for the mart-build that produced this row.
+        data_type: VARCHAR
