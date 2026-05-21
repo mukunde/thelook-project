@@ -4,16 +4,16 @@ Scope: the 4 Finance-relevant tables. Two ingestion strategies, chosen per
 table according to its semantic role:
 
   - Dimensions (`users`, `products`) -> `write_disposition='replace'`.
-    Full-refresh on every run. No cursor, no cutoff. Dimensions must be
-    complete (a fact row referencing a user from 2020 needs that user in
-    dim_users — cutting them creates orphan foreign keys downstream).
+    Full-refresh on every run. No cursor. Dimensions must be complete
+    (a fact row referencing a user from 2020 needs that user in dim_users
+    — cutting them creates orphan foreign keys downstream).
 
   - Event streams (`orders`, `order_items`) -> `write_disposition='merge'`
-    with `dlt.sources.incremental` on `created_at`, cut-off 2023-01-01.
-    Cheap-to-replay incremental for transactional volumes.
-
-The cutoff applies ONLY to the event-stream resources. The dimension
-resources are loaded in full.
+    with `dlt.sources.incremental` on `created_at`. The incremental
+    backfill starts at 2022-10-01 (Q4 2022 buffer for late-finalised
+    cross-year orders). Residual FK orphans in pre-2023 RAW data are
+    filtered out at the dbt staging layer via an "analytical horizon"
+    (>= 2023-01-01). See the INCREMENTAL_BACKFILL_START rationale below.
 """
 
 from collections.abc import Iterator
@@ -25,7 +25,31 @@ from google.cloud import bigquery
 
 PIPELINE_NAME = "thelook_finance"
 DATASET_NAME = "thelook"  # Snowflake schema -> RAW.THELOOK
-CUTOFF = datetime(2023, 1, 1, tzinfo=UTC)
+
+# Lower bound for the `dlt.sources.incremental` cursor on event-stream
+# resources (orders, order_items).
+#
+# Why 2022-10-01 — diagnostic + design pattern:
+#
+# Iteration 1 (initial cutoff 2023-01-01): caused 33 FK orphans on
+# fct_orders. SQL diagnostic on RAW revealed orphans were 100% in
+# 2023-01-01 → 2023-01-04 — late-finalised 2022 orders.
+#
+# Iteration 2 (cutoff shifted to 2022-10-01): 26 orphans persisted, this
+# time concentrated in 2022-10-01 → 2022-10-04. The pattern is recursive:
+# orders have a ~1-2 week tail of late-finalised items, so any cutoff on
+# order_items.created_at produces a residual set of orphans.
+#
+# Design choice: instead of widening the backfill indefinitely (full
+# history = 2018), we keep RAW at 2022-10-01 and apply an "analytical
+# horizon" filter (>= 2023-01-01) in the dbt staging layer. This cleanly
+# separates STORAGE (what we ingest) from ANALYSIS (what we report on).
+# The Q4 2022 buffer in RAW absorbs the late-finalisation of orders
+# whose items land in early Jan 2023; the analytical horizon ignores
+# pre-2023 data we never planned to analyse anyway.
+#
+# Full multi-iteration diagnostic captured in portfolio TP-003.
+INCREMENTAL_BACKFILL_START = datetime(2022, 10, 1, tzinfo=UTC)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -114,7 +138,7 @@ def products() -> Iterator[dict[str, Any]]:
 def orders(
     created_at_incremental: dlt.sources.incremental[datetime] = dlt.sources.incremental(
         "created_at",
-        initial_value=CUTOFF,
+        initial_value=INCREMENTAL_BACKFILL_START,
     ),
 ) -> Iterator[dict[str, Any]]:
     """Incremental loader for `bigquery-public-data.thelook_ecommerce.orders`.
@@ -150,7 +174,7 @@ def orders(
 def order_items(
     created_at_incremental: dlt.sources.incremental[datetime] = dlt.sources.incremental(
         "created_at",
-        initial_value=CUTOFF,
+        initial_value=INCREMENTAL_BACKFILL_START,
     ),
 ) -> Iterator[dict[str, Any]]:
     """Incremental loader for `bigquery-public-data.thelook_ecommerce.order_items`.

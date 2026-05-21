@@ -5,7 +5,16 @@
 
 with source as (
 
+    -- Analytical horizon filter: the project analyses data from 2023-01-01
+    -- onwards. Applied here because `order_items` is the event stream that
+    -- drives every Finance fact downstream. RAW keeps a Q4 2022 buffer (see
+    -- the ingestion pipeline's INCREMENTAL_BACKFILL_START rationale) so
+    -- that items in early 2023 can still resolve their FK to orders
+    -- late-finalised in late 2022 (kept in stg_shopify__orders without
+    -- filter). The pattern: filter the EVENT STREAM, keep the SUPPORTING
+    -- ENTITIES complete. See portfolio TP-003 for the full diagnostic.
     select * from {{ source('shopify', 'order_items') }}
+    where created_at >= '2023-01-01'
 
 ),
 
