@@ -4,6 +4,15 @@
 
 with source as (
 
+    -- NO analytical horizon filter here. Reason: `orders` is a SUPPORTING
+    -- ENTITY for the event-stream `order_items`. The analytical horizon
+    -- (>= 2023-01-01) is enforced on order_items (the event stream the
+    -- project actually analyses), but orders must remain complete so
+    -- that items in early 2023 can resolve their FK back to orders
+    -- late-finalised in late 2022. Filtering orders too would re-create
+    -- the FK orphan pattern we just fixed. See stg_shopify__order_items
+    -- for the analytical horizon filter, and portfolio TP-003 for the
+    -- full diagnostic.
     select * from {{ source('shopify', 'orders') }}
 
 ),
