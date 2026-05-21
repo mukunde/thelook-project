@@ -1,0 +1,24 @@
+# CI profile for dbt docs generation in GitHub Actions.
+#
+# IMPORTANT: this profile is NEVER used to query Snowflake. The CI workflow
+# passes --empty-catalog to `dbt docs generate`, which skips the catalog
+# query entirely. The dummy values below just satisfy dbt's profile-parsing
+# layer, which requires a valid profile structure even when no connection
+# is made.
+#
+# Real connection profile lives at ~/.dbt/profiles.yml on the developer's
+# machine. See transformation/profiles.yml.example for the canonical template.
+
+thelook:
+  target: ci
+  outputs:
+    ci:
+      type: snowflake
+      account: ci-dummy-account
+      user: CI_DUMMY_USER
+      role: CI_DUMMY_ROLE
+      warehouse: CI_DUMMY_WAREHOUSE
+      database: CI_DUMMY_DATABASE
+      schema: ci_dummy_schema
+      authenticator: externalbrowser
+      threads: 1
