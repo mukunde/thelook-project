@@ -35,6 +35,13 @@ jobs:
 
     env:
       DBT_PROFILES_DIR: ${{ github.workspace }}/transformation/.dbt-ci
+      # Dummy value for the pseudonymisation salt: the `pseudonymise()` macro
+      # reads DBT_PSEUDONYMISATION_SALT via env_var() with no fallback (fail-fast
+      # design in dev). dbt parse evaluates ALL macros even when --empty-catalog
+      # is passed, so the env var must be present in CI. The actual value is
+      # irrelevant here because --empty-catalog skips the Snowflake hit, so the
+      # SQL generated with this dummy salt is never executed against the warehouse.
+      DBT_PSEUDONYMISATION_SALT: ci-docs-generation-dummy-never-executed
 
     steps:
       - name: Checkout
