@@ -59,9 +59,18 @@ jobs:
         working-directory: transformation
         run: uv run dbt deps
 
-      - name: Generate dbt docs (empty catalog, no Snowflake hit)
+      - name: Generate dbt docs (empty catalog + no cache pre-warm, no Snowflake hit)
         working-directory: transformation
-        run: uv run dbt docs generate --empty-catalog
+        # Two flags are required to truly skip every Snowflake hit:
+        #   --no-populate-cache : skip the startup `show objects in <schema>`
+        #                          warehouse-cache pre-warm. Without this dbt
+        #                          tries to list relations even before any
+        #                          compile or catalog query.
+        #   --empty-catalog     : skip the catalog generation step (SELECT on
+        #                          tables for column types / stats).
+        # Together they let dbt generate index.html + manifest.json without
+        # ever opening a real Snowflake session.
+        run: uv run dbt --no-populate-cache docs generate --empty-catalog
         env:
           DBT_LOG_LEVEL: debug
 
