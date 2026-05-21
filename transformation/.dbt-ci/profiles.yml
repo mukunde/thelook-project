@@ -1,24 +1,32 @@
 # CI profile for dbt docs generation in GitHub Actions.
 #
-# IMPORTANT: this profile is NEVER used to query Snowflake. The CI workflow
-# passes --empty-catalog to `dbt docs generate`, which skips the catalog
-# query entirely. The dummy values below just satisfy dbt's profile-parsing
-# layer, which requires a valid profile structure even when no connection
-# is made.
+# This profile uses real Snowflake credentials passed via GitHub Secrets
+# (env vars resolved by env_var() Jinja). It connects to ANALYTICS_DEV
+# and inspects the dev schemas (dbt_gm_staging, dbt_gm_marts) already
+# populated by the developer's local dbt runs. No materialization happens
+# in CI — `dbt docs generate` is read-only.
 #
-# Real connection profile lives at ~/.dbt/profiles.yml on the developer's
-# machine. See transformation/profiles.yml.example for the canonical template.
+# The 5 secrets required (set under GitHub repo settings -> Secrets):
+#   SNOWFLAKE_ACCOUNT      e.g. FWKNTAH-TG96638
+#   SNOWFLAKE_USER         e.g. USER_DBT
+#   SNOWFLAKE_ROLE         e.g. ROLE_TRANSFORM
+#   SNOWFLAKE_WAREHOUSE    e.g. TRANSFORM_WH
+#   SNOWFLAKE_PRIVATE_KEY  PEM content of USER_DBT private key file
+#
+# Real connection profile for local dev lives at ~/.dbt/profiles.yml
+# (see transformation/profiles.yml.example for the canonical template).
 
 thelook:
   target: ci
   outputs:
     ci:
       type: snowflake
-      account: ci-dummy-account
-      user: CI_DUMMY_USER
-      role: CI_DUMMY_ROLE
-      warehouse: CI_DUMMY_WAREHOUSE
-      database: CI_DUMMY_DATABASE
-      schema: ci_dummy_schema
-      authenticator: externalbrowser
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE') }}"
+      database: ANALYTICS_DEV
+      schema: dbt_gm
+      private_key: "{{ env_var('SNOWFLAKE_PRIVATE_KEY') }}"
       threads: 1
+      client_session_keep_alive: false

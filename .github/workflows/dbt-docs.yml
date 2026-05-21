@@ -35,12 +35,19 @@ jobs:
 
     env:
       DBT_PROFILES_DIR: ${{ github.workspace }}/transformation/.dbt-ci
+      # Snowflake credentials passed from repo secrets. Used by the CI profile
+      # at transformation/.dbt-ci/profiles.yml via env_var() Jinja calls.
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
       # Dummy value for the pseudonymisation salt: the `pseudonymise()` macro
       # reads DBT_PSEUDONYMISATION_SALT via env_var() with no fallback (fail-fast
-      # design in dev). dbt parse evaluates ALL macros even when --empty-catalog
-      # is passed, so the env var must be present in CI. The actual value is
-      # irrelevant here because --empty-catalog skips the Snowflake hit, so the
-      # SQL generated with this dummy salt is never executed against the warehouse.
+      # design in dev). dbt parse evaluates ALL macros at startup, so the env
+      # var must be present in CI. The actual value is irrelevant for docs
+      # generation since `dbt docs generate` does not materialise anything
+      # (it's read-only against the warehouse).
       DBT_PSEUDONYMISATION_SALT: ci-docs-generation-dummy-never-executed
 
     steps:
@@ -59,25 +66,23 @@ jobs:
         working-directory: transformation
         run: uv run dbt deps
 
-      - name: Generate dbt docs (static + empty catalog + no cache pre-warm)
+      - name: Generate dbt docs (static + no cache pre-warm)
         working-directory: transformation
-        # Three flags are needed to get a deployable single-file HTML viewer
-        # without any Snowflake hit:
+        # Two flags:
         #   --no-populate-cache : skip the startup `show objects in <schema>`
-        #                          warehouse-cache pre-warm. Without this dbt
-        #                          tries to list relations even before any
-        #                          compile or catalog query.
-        #   --empty-catalog     : skip the catalog generation step (SELECT on
-        #                          tables for column types / stats).
+        #                          warehouse-cache pre-warm. Saves a couple of
+        #                          seconds; the docs build doesn't need the
+        #                          cache.
         #   --static            : produce `static_index.html`, a single-file
         #                          HTML viewer with all assets and the manifest
         #                          embedded. Without this, dbt 1.8+ only writes
         #                          the JSON artifacts and expects an external
-        #                          viewer (e.g. `dbt docs serve`), which is
-        #                          not what we want for GitHub Pages.
-        run: uv run dbt --no-populate-cache docs generate --static --empty-catalog
-        env:
-          DBT_LOG_LEVEL: debug
+        #                          viewer.
+        # `--empty-catalog` removed: now that we have real Snowflake credentials
+        # in CI, we want the full catalog (column types, stats) embedded in the
+        # rendered docs. dbt docs generate is read-only (no materialization), so
+        # safe to run against ANALYTICS_DEV.
+        run: uv run dbt --no-populate-cache docs generate --static
 
       - name: Inspect target/ contents (debug)
         working-directory: transformation
