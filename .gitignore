@@ -154,6 +154,9 @@ dist/
 # ─── Personal notes / planning ───────────────────────────
 docs/TODO/
 
+# ─── Claude Code (AI assistant worktrees + local config) ─
+.claude/
+
 # ─── direnv ──────────────────────────────────────────────
 .envrc
 .direnv/
