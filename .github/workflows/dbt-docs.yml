@@ -1,0 +1,66 @@
+name: dbt docs (deploy to GitHub Pages)
+
+# Generates dbt's lineage + documentation site and publishes it to the
+# gh-pages branch. The site is then served at the project's GitHub Pages
+# URL (see README "Live surfaces" section).
+#
+# No Snowflake credentials needed: we pass --empty-catalog to
+# `dbt docs generate`, which skips the catalog generation step (column
+# types, row counts) but keeps everything else (lineage, descriptions,
+# tests, sources). The dummy profile at transformation/.dbt-ci/profiles.yml
+# satisfies dbt's profile-parsing layer without an actual connection.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'transformation/**'
+      - 'ingestion/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/dbt-docs.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dbt-docs
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build dbt docs and deploy to GitHub Pages
+    runs-on: ubuntu-latest
+
+    env:
+      DBT_PROFILES_DIR: ${{ github.workspace }}/transformation/.dbt-ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install workspace deps (root + ingestion + transformation)
+        run: uv sync --all-packages
+
+      - name: Install dbt packages
+        working-directory: transformation
+        run: uv run dbt deps
+
+      - name: Generate dbt docs (empty catalog, no Snowflake hit)
+        working-directory: transformation
+        run: uv run dbt docs generate --empty-catalog
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: transformation/target
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: "deploy dbt docs from ${{ github.sha }}"

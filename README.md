@@ -15,7 +15,7 @@ The following surfaces are produced by Phase 2. Phase 1 delivered the platform u
 | Dagster UI | `https://dagster.<domain>.dev` | Always-on (OCI), Phase 2 |
 | Metabase | `https://metabase.<domain>.dev` | Always-on (OCI), Phase 2 |
 | Evidence.dev dashboard | `https://<project>.vercel.app` | Always-on (Vercel, static), Phase 2 |
-| dbt docs | `https://<user>.github.io/<repo>/` | GitHub Pages, Phase 2 |
+| dbt docs (lineage + descriptions) | `https://mukunde.github.io/thelook-project/` | Live, auto-deployed on merge to main (GitHub Pages) |
 | Walk-through video | Loom link | Phase 2 |
 
 ---
