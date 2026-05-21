@@ -1,0 +1,142 @@
+version: 2
+
+models:
+  - name: fct_order_items
+    description: >
+      Order item-level fact table — grain: one row per (order, item) pair.
+      Joins stg_shopify__order_items with dim_products (to enrich with cost
+      for margin calculations). Exposes the foreign keys to dim_users,
+      dim_products, dim_dates, plus the raw facts (sale_price, cost, status),
+      the event timestamps, and the business calculations (net_revenue,
+      gross_margin, gross_margin_rate, is_returned, is_delivered,
+      days_to_delivery). Conformed to Strict Kimball — no denormalised
+      dimension attributes (BI tools join the dim themselves).
+
+    config:
+      contract:
+        enforced: true
+
+    columns:
+      # ─── Primary key ─────────────────────────────────────────
+      - name: order_item_id
+        description: Surrogate primary key of the order item, propagated from `stg_shopify__order_items.order_item_id`.
+        data_type: NUMBER
+        data_tests:
+          - not_null
+          - unique
+
+      # ─── Foreign keys to dimensions ──────────────────────────
+      - name: order_id
+        description: Foreign key to the parent order (will reference `fct_orders` in a follow-up feature).
+        data_type: NUMBER
+        data_tests:
+          - not_null
+
+      - name: user_id
+        description: Foreign key to `dim_users`. Relationships test active in WARN mode (see note below).
+        data_type: NUMBER
+        data_tests:
+          - not_null
+          # Known data quality finding (Sprint dbt #13, 2026-05-21):
+          # ~77k order_items reference user_ids created BEFORE the dlt cutoff
+          # (2023-01-01) on the users source. These historical users are
+          # absent from stg_segment__users (and therefore dim_users), so the
+          # relationships test would fail on every build.
+          # Severity downgraded to WARN to keep the finding visible without
+          # blocking the build. To promote back to ERROR: remove the dlt
+          # cutoff on the `users` source so all historical users are ingested.
+          - relationships:
+              arguments:
+                to: ref('dim_users')
+                field: user_id
+              config:
+                severity: warn
+
+      - name: product_id
+        description: Foreign key to `dim_products`.
+        data_type: NUMBER
+        data_tests:
+          - not_null
+        # Relationships test deferred (see ADR or Sprint A.7 — we run it
+        # against dim_products in a follow-up to validate performance first).
+        # data_tests:
+        #   - relationships:
+        #       to: ref('dim_products')
+        #       field: product_id
+
+      - name: inventory_item_id
+        description: Foreign key to the inventory unit consumed (no dimension yet — Phase 3 / Operations scope).
+        data_type: NUMBER
+
+      - name: ordered_date
+        description: Foreign key to `dim_dates`, derived from `ordered_at::date`.
+        data_type: DATE
+        data_tests:
+          - not_null
+
+      - name: delivered_date
+        description: Foreign key to `dim_dates`, derived from `delivered_at::date`. NULL until delivered.
+        data_type: DATE
+
+      # ─── Status + raw facts ──────────────────────────────────
+      - name: status
+        description: Item lifecycle status (Processing, Shipped, Complete, Cancelled, Returned). Drives net_revenue + is_returned.
+        data_type: VARCHAR
+
+      - name: sale_price
+        description: Selling price of the item at the time of the order (USD), from the source.
+        data_type: FLOAT
+
+      - name: cost
+        description: Product cost of goods (USD), looked up from `dim_products` at mart-build time. Assumed stable per product (no SCD2 yet).
+        data_type: FLOAT
+
+      # ─── Event timestamps (passthrough for time-to analyses) ──
+      - name: ordered_at
+        description: Timestamp the order item was placed.
+        data_type: TIMESTAMP_TZ
+      - name: shipped_at
+        description: Timestamp the item was shipped (NULL until shipped).
+        data_type: TIMESTAMP_TZ
+      - name: delivered_at
+        description: Timestamp the item was delivered (NULL until delivered).
+        data_type: TIMESTAMP_TZ
+      - name: returned_at
+        description: Timestamp the item was returned (NULL unless returned).
+        data_type: TIMESTAMP_TZ
+
+      # ─── Business calculations (the heart of the fact) ────────
+      - name: net_revenue
+        description: >
+          Revenue net of returns. `sale_price` if status != 'Returned', else 0.
+          The headline metric of the Finance domain (sum across rows gives
+          period net revenue).
+        data_type: FLOAT
+
+      - name: gross_margin
+        description: net_revenue - cost. Negative when the item is returned (cost was incurred but no revenue captured).
+        data_type: FLOAT
+
+      - name: gross_margin_rate
+        description: gross_margin / net_revenue. NULL when net_revenue = 0 (returned items) to avoid division-by-zero.
+        data_type: FLOAT
+
+      - name: is_returned
+        description: TRUE if the order item was returned (status = 'Returned'). Additive (SUM gives count of returned items).
+        data_type: BOOLEAN
+
+      - name: is_delivered
+        description: TRUE if delivered_at IS NOT NULL. Additive.
+        data_type: BOOLEAN
+
+      - name: days_to_delivery
+        description: Number of days between ordered_at and delivered_at. NULL when not yet delivered.
+        data_type: NUMBER
+
+      # ─── Audit columns (regenerated at mart-build time) ──────────
+      - name: _loaded_at
+        description: Timestamp when this row was materialised into `fct_order_items`.
+        data_type: TIMESTAMP_LTZ
+      - name: _dbt_invocation_id
+        description: Unique dbt invocation ID for the mart-build that produced this row.
+        data_type: VARCHAR
