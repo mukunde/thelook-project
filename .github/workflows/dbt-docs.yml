@@ -59,20 +59,43 @@ jobs:
         working-directory: transformation
         run: uv run dbt deps
 
-      - name: Generate dbt docs (empty catalog + no cache pre-warm, no Snowflake hit)
+      - name: Generate dbt docs (static + empty catalog + no cache pre-warm)
         working-directory: transformation
-        # Two flags are required to truly skip every Snowflake hit:
+        # Three flags are needed to get a deployable single-file HTML viewer
+        # without any Snowflake hit:
         #   --no-populate-cache : skip the startup `show objects in <schema>`
         #                          warehouse-cache pre-warm. Without this dbt
         #                          tries to list relations even before any
         #                          compile or catalog query.
         #   --empty-catalog     : skip the catalog generation step (SELECT on
         #                          tables for column types / stats).
-        # Together they let dbt generate index.html + manifest.json without
-        # ever opening a real Snowflake session.
-        run: uv run dbt --no-populate-cache docs generate --empty-catalog
+        #   --static            : produce `static_index.html`, a single-file
+        #                          HTML viewer with all assets and the manifest
+        #                          embedded. Without this, dbt 1.8+ only writes
+        #                          the JSON artifacts and expects an external
+        #                          viewer (e.g. `dbt docs serve`), which is
+        #                          not what we want for GitHub Pages.
+        run: uv run dbt --no-populate-cache docs generate --static --empty-catalog
         env:
           DBT_LOG_LEVEL: debug
+
+      - name: Inspect target/ contents (debug)
+        working-directory: transformation
+        run: ls -la target/
+
+      - name: Rename static_index.html to index.html for GitHub Pages
+        working-directory: transformation
+        # GitHub Pages serves /index.html at the root of the published dir.
+        # dbt produces `static_index.html`, so we rename it. Fail loudly if
+        # dbt didn't produce the file, since the deploy would be broken.
+        run: |
+          if [ -f target/static_index.html ]; then
+            mv target/static_index.html target/index.html
+            echo "Renamed static_index.html to index.html"
+          else
+            echo "ERROR: target/static_index.html not found after dbt docs generate --static"
+            exit 1
+          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
