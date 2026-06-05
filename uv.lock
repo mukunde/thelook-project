@@ -18,6 +18,7 @@ resolution-markers = [
 members = [
     "thelook-ingestion",
     "thelook-mds",
+    "thelook-semantic",
     "thelook-transformation",
 ]
 
@@ -2696,6 +2697,11 @@ dev = [
     { name = "pytest-cov", specifier = ">=5.0.0" },
     { name = "ruff", specifier = ">=0.6.0" },
 ]
+
+[[package]]
+name = "thelook-semantic"
+version = "0.1.0"
+source = { virtual = "semantic" }
 
 [[package]]
 name = "thelook-transformation"
