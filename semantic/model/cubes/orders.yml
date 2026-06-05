@@ -1,0 +1,64 @@
+# Cube: orders
+#
+# Mirrors the fct_orders dbt mart.
+# Reference: transformation/models/marts/finance/fct_orders.sql
+#
+# Per ADR-0011 §Decision point 1, this cube is mirrored from the mart. But
+# per §2 (single grain entry point at fct_order_items), this cube DOES NOT
+# define measures: the 4 canonical Finance measures live in the order_items
+# cube only. Cube aggregates from order_items to the order grain dynamically
+# via COUNT(DISTINCT order_id), preserving the DRY guarantee.
+#
+# This cube exists as a join target for order-level attributes (status,
+# gender) that order_items needs to reach via {orders.status}. Public: false.
+#
+# Joins: declared on order_items.yml (which has the order_id FK).
+
+cubes:
+  - name: orders
+    sql_table: ANALYTICS.MARTS.FCT_ORDERS
+    public: false
+    description: |
+      Order-level attributes (status, gender, dates). Mirrors fct_orders but
+      exposes NO measures: per ADR-0011 §2, Finance measures live in the
+      order_items cube only, Cube aggregates from there.
+
+    dimensions:
+      # ─── Primary key ───
+      - name: order_id
+        sql: order_id
+        type: number
+        primary_key: true
+
+      # Order-level attributes only. Aggregated facts (items_count,
+      # total_revenue_*, etc.) intentionally NOT exposed: per ADR-0011 §2 single
+      # grain, those metrics belong on order_items and are derived there via
+      # COUNT(DISTINCT order_id) etc.
+
+      # ─── Order-level attributes ───
+      - name: status
+        sql: status
+        type: string
+
+      - name: gender
+        sql: gender
+        type: string
+
+      # ─── Event timestamps ───
+      - name: ordered_at
+        sql: ordered_at
+        type: time
+
+      - name: ordered_date
+        sql: ordered_date
+        type: time
+
+      - name: delivered_at
+        sql: delivered_at
+        type: time
+
+    # ─── measures: intentionally absent ───
+    # Per ADR-0011 §Decision point 2 (single grain entry at fct_order_items),
+    # this cube exposes NO measures. To get order-level metrics like "average
+    # order value", define them in order_items.yml using
+    # COUNT(DISTINCT order_id) as the denominator (see order_items.avg_order_value).

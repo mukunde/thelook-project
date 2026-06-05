@@ -1,0 +1,81 @@
+# Cube: users
+#
+# Mirrors the dim_users dbt mart.
+# Reference: transformation/models/marts/core/dim_users.sql
+#
+# Per ADR-0011 §Decision point 1 (Strict Kimball reflection), this cube maps
+# 1:1 to the mart. Per §3 (view-only), public: false.
+#
+# Per §5 (RBAC), no access to STAGING. PII columns (first_name, last_name,
+# email, street_address) are ALREADY pseudonymised at the dbt staging layer
+# (SHA-256 + salt), so they appear here as opaque hashes. Do NOT expose them
+# in the `finance` view: hashes have no analytical value, only the risk of
+# leaking a join key into a BI client.
+#
+# No joins declared here: dim_users is the TARGET of joins from event cubes
+# (order_items.user_id, orders.user_id join to users.user_id).
+#
+# No measures: pure dimension cube.
+
+cubes:
+  - name: users
+    sql_table: ANALYTICS.MARTS.DIM_USERS
+    public: false
+    description: |
+      Conformed user dimension. Demographic, geographic, and acquisition
+      attributes for cohorting Finance measures.
+
+    dimensions:
+      # ─── Primary key ───
+      - name: user_id
+        sql: user_id
+        type: number
+        primary_key: true
+
+      # All non-PII columns exposed; pseudonymised PII (first_name, last_name,
+      # email, street_address) intentionally skipped per the cube-level rationale
+      # above. The `finance` view curates the analyst-facing subset.
+
+      # ─── Demographics ───
+      - name: age
+        sql: age
+        type: number
+
+      - name: gender
+        sql: gender
+        type: string
+
+      # ─── Geography ───
+      - name: country
+        sql: country
+        type: string
+
+      - name: state
+        sql: state
+        type: string
+
+      - name: city
+        sql: city
+        type: string
+
+      - name: postal_code
+        sql: postal_code
+        type: string
+
+      - name: latitude
+        sql: latitude
+        type: number
+
+      - name: longitude
+        sql: longitude
+        type: number
+
+      # ─── Acquisition ───
+      - name: traffic_source
+        sql: traffic_source
+        type: string
+
+      # ─── Business timestamp ───
+      - name: registered_at
+        sql: registered_at
+        type: time

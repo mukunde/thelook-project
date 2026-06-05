@@ -1,0 +1,70 @@
+# Cube: products
+#
+# Mirrors the dim_products dbt mart.
+# Reference: transformation/models/marts/core/dim_products.sql
+#
+# Per ADR-0011 §Decision point 1 (Strict Kimball reflection). Public: false.
+#
+# No joins declared here: dim_products is the TARGET of joins from event
+# cubes (order_items.product_id joins to products.product_id).
+#
+# No measures: pure dimension cube. The financial attributes (cost,
+# retail_price) ARE columns on dim_products, but they are per-product unit
+# values, not aggregables. They are exposed as dimensions, not measures.
+# Aggregated cost is computed in order_items.gross_margin (already in the
+# mart, propagated as a Cube measure).
+
+cubes:
+  - name: products
+    sql_table: ANALYTICS.MARTS.DIM_PRODUCTS
+    public: false
+    description: |
+      Conformed product dimension. SKU-level catalog attributes for
+      segmenting Finance measures by product taxonomy.
+
+    dimensions:
+      # ─── Primary key ───
+      - name: product_id
+        sql: product_id
+        type: number
+        primary_key: true
+
+      # All taxonomy + per-unit financials exposed as dimensions. The `finance`
+      # view typically picks category / brand / department for cohort analysis.
+      # Per-unit cost and retail_price are exposed for product detail drill-downs
+      # but are NOT measures (see cube-level rationale above).
+
+      # ─── Taxonomy ───
+      - name: category
+        sql: category
+        type: string
+
+      - name: name
+        sql: name
+        type: string
+
+      - name: brand
+        sql: brand
+        type: string
+
+      - name: department
+        sql: department
+        type: string
+
+      - name: sku
+        sql: sku
+        type: string
+
+      # ─── Per-unit financials (NOT measures) ───
+      - name: cost
+        sql: cost
+        type: number
+
+      - name: retail_price
+        sql: retail_price
+        type: number
+
+      # ─── FK to inventory (not currently joined; kept for completeness) ───
+      - name: distribution_center_id
+        sql: distribution_center_id
+        type: number
