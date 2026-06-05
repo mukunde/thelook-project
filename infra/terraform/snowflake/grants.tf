@@ -143,6 +143,32 @@ resource "snowflake_grant_privileges_to_account_role" "transform_raw_thelook_vie
   }
 }
 
+# ─── Schema-level grants on ANALYTICS schemas for ROLE_TRANSFORM ──
+# ROLE_TRANSFORM must create and manage tables/views in the pre-declared
+# ANALYTICS.STAGING and ANALYTICS.MARTS schemas. These schemas are owned by
+# ROLE_TERRAFORM (created via IaC), so database-level CREATE SCHEMA does not
+# grant access to them: schema-level USAGE + CREATE TABLE/VIEW must be
+# granted explicitly. ROLE_TRANSFORM owns the tables it creates (Snowflake
+# default), so no further future-object grants needed for it.
+
+resource "snowflake_grant_privileges_to_account_role" "transform_analytics_staging_schema" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["USAGE", "CREATE TABLE", "CREATE VIEW"]
+
+  on_schema {
+    schema_name = "\"${snowflake_database.analytics.name}\".\"${snowflake_schema.analytics_staging.name}\""
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "transform_analytics_marts_schema" {
+  account_role_name = snowflake_account_role.transform.name
+  privileges        = ["USAGE", "CREATE TABLE", "CREATE VIEW"]
+
+  on_schema {
+    schema_name = "\"${snowflake_database.analytics.name}\".\"${snowflake_schema.analytics_marts.name}\""
+  }
+}
+
 # ─── Schema & future-object grants on the Finance marts ─────
 
 resource "snowflake_grant_privileges_to_account_role" "analyst_finance_marts_schema" {
