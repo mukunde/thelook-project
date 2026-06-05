@@ -1,0 +1,11 @@
+[project]
+name = "thelook-semantic"
+version = "0.1.0"
+description = "Cube Cloud semantic layer over the dbt Finance marts (ADR-0011)."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Gaël Mukunde" }]
+dependencies = []
+
+[tool.uv]
+package = false

@@ -1,0 +1,21 @@
+# Node.js (Cube runtime, local dev installs)
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# Cube Store cache (local dev server)
+.cubestore/
+.cubecloud/
+
+# Local environment (real Snowflake credentials)
+.env
+.env.local
+
+# Python tooling (root pyproject.toml drives lint/test; nothing module-local yet)
+__pycache__/
+*.pyc
+.ruff_cache/
+.mypy_cache/
+
+# Logs
+*.log
