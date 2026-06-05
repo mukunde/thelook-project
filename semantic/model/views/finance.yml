@@ -1,0 +1,88 @@
+# View: finance
+#
+# The SINGLE PUBLIC surface for Finance BI clients (Metabase, Evidence,
+# Python notebooks). Per ADR-0011 §Decision point 3 (view-only exposure),
+# this is the only artifact in this Cube project with public: true. All
+# underlying cubes (order_items, orders, users, products, dates) are private.
+#
+# Why view-only:
+#   - Refactor seam: I can rename, split, or join cubes without breaking BI
+#     clients, as long as the view's contract is preserved.
+#   - Encapsulation: BI clients query ONE name (`finance`), no need to know
+#     the underlying Kimball model.
+#   - Curation: only the measures and dimensions useful for Finance analysis
+#     are exposed. The cubes might have more, the view picks selectively.
+#
+# The view is rooted on `order_items` (the grain entry point per ADR-0011
+# §Decision point 2). All other cubes are reached via their join_path through
+# order_items.
+
+views:
+  - name: finance
+    description: |
+      Finance domain BI surface. Exposes the 4 canonical Finance measures
+      (net_revenue, gross_margin_rate, financial_return_rate, avg_order_value)
+      along with a curated set of dimensions for cohorting (time, geography,
+      product taxonomy, order status).
+
+    cubes:
+      # ─── 1. Root cube: order_items (the grain entry point) ───
+      # All 4 canonical Finance measures exposed (per ADR-0011 §4) + a curated
+      # set of row-level dimensions for slicing. Other cubes are reached via
+      # their join_path through order_items.
+      - join_path: order_items
+        includes:
+          # Canonical Finance measures
+          - count
+          - net_revenue
+          - gross_margin_rate
+          - financial_return_rate
+          - avg_order_value
+          # Row-level dimensions
+          - status
+          - ordered_date
+          - delivered_date
+          - is_returned
+          - is_delivered
+
+      # ─── 2. Product taxonomy ───
+      # Dimensions prefixed with `products_` to keep the BI namespace clear
+      # (e.g., `products_category` rather than just `category`).
+      - join_path: order_items.products
+        prefix: true
+        includes:
+          - category
+          - brand
+          - department
+
+      # ─── 3. User cohorts ───
+      # PII columns intentionally NOT included: opaque hashes have no
+      # analytical value, exposing them would only leak a join key.
+      - join_path: order_items.users
+        prefix: true
+        includes:
+          - country
+          - state
+          - gender
+          - traffic_source
+
+      # ─── 4. Order-level attribute ───
+      # Distinct from order_items.status:
+      #   - orders.status     = global order state (Complete, Cancelled, Processing)
+      #   - order_items.status = line-level state (typically Returned)
+      # Surfaces as `orders_status` thanks to prefix.
+      - join_path: order_items.orders
+        prefix: true
+        includes:
+          - status
+
+      # ─── 5. Calendar attributes ───
+      # Composite string attributes (year_month, year_quarter) plus the
+      # behavioural flag is_weekend, all prefixed with `dates_`.
+      - join_path: order_items.dates
+        prefix: true
+        includes:
+          - year
+          - year_month
+          - year_quarter
+          - is_weekend

@@ -1,0 +1,175 @@
+# Cube: order_items
+#
+# Mirrors the fct_order_items dbt mart.
+# Reference: transformation/models/marts/finance/fct_order_items.sql
+#
+# This is the HEART of the Finance semantic layer:
+#   - Per ADR-0011 §Decision point 2, this is the grain entry point. All 4
+#     canonical Finance measures aggregate from this cube.
+#   - It declares joins to ALL 4 other cubes (products, users, orders, dates),
+#     because the FKs live in fct_order_items.
+#   - Public: false (per ADR-0011 §3, only the `finance` view is exposed).
+
+cubes:
+  - name: order_items
+    sql_table: ANALYTICS.MARTS.FCT_ORDER_ITEMS
+    public: false
+    description: |
+      The grain entry point for all Finance measures (one row per order item).
+      Mirrors fct_order_items 1:1. The 4 canonical Finance measures are
+      defined here once, propagated to other grains via cube-side aggregation.
+
+    # ───────────────────────────────────────────────────────────────
+    # JOINS — to dim cubes (products, users, dates) + the orders cube.
+    # ───────────────────────────────────────────────────────────────
+    joins:
+      # 1/4 — products (FK: product_id)
+      - name: products
+        sql: "{CUBE}.product_id = {products}.product_id"
+        relationship: many_to_one
+
+      # 2/4 — users (FK: user_id)
+      - name: users
+        sql: "{CUBE}.user_id = {users}.user_id"
+        relationship: many_to_one
+
+      # 3/4 — orders (FK: order_id)
+      - name: orders
+        sql: "{CUBE}.order_id = {orders}.order_id"
+        relationship: many_to_one
+
+      # 4/4 — dates (FK: ordered_date)
+      # The date join uses the date-cast column `ordered_date` (a DATE), which
+      # matches the grain of dim_dates.date_day.
+      - name: dates
+        sql: "{CUBE}.ordered_date = {dates}.date_day"
+        relationship: many_to_one
+
+    # ───────────────────────────────────────────────────────────────
+    # DIMENSIONS — order-item attributes BI clients can slice by.
+    # ───────────────────────────────────────────────────────────────
+    dimensions:
+      # ─── Primary key ───
+      - name: order_item_id
+        sql: order_item_id
+        type: number
+        primary_key: true
+
+      # ─── FK columns (exposed to allow COUNT DISTINCT from BI clients) ───
+      - name: order_id
+        sql: order_id
+        type: number
+
+      - name: user_id
+        sql: user_id
+        type: number
+
+      - name: product_id
+        sql: product_id
+        type: number
+
+      # ─── Status + event timestamps + return/delivery flags ───
+      # Note: the mart has a per-row gross_margin_rate column, intentionally
+      # NOT exposed as a Cube dimension. Per Kimball, rates must be computed
+      # at the aggregation level, not averaged across rows (the aggregated
+      # rate is the gross_margin_rate MEASURE below).
+      - name: status
+        sql: status
+        type: string
+
+      - name: ordered_at
+        sql: ordered_at
+        type: time
+
+      - name: ordered_date
+        sql: ordered_date
+        type: time
+
+      - name: delivered_at
+        sql: delivered_at
+        type: time
+
+      - name: delivered_date
+        sql: delivered_date
+        type: time
+
+      - name: is_returned
+        sql: is_returned
+        type: boolean
+
+      - name: shipped_at
+        sql: shipped_at
+        type: time
+
+      - name: returned_at
+        sql: returned_at
+        type: time
+
+      - name: is_delivered
+        sql: is_delivered
+        type: boolean
+
+      - name: days_to_delivery
+        sql: days_to_delivery
+        type: number
+
+
+    # ───────────────────────────────────────────────────────────────
+    # MEASURES — the 4 canonical Finance measures (defined once, here).
+    # ───────────────────────────────────────────────────────────────
+    measures:
+      # ─── 0/4 — baseline count (free, always useful) ───
+      - name: count
+        type: count
+        description: "Total number of item lines across orders, including returned items."
+
+      # ─── 1/4 — net_revenue ───
+      # Definition: SUM(net_revenue) where net_revenue is already encoded as
+      # "0 when status='Returned'" in the dbt mart (DRY: defined ONCE in
+      # transformation/models/marts/finance/fct_order_items.sql line 74).
+      # ADR-0011 §Decision point 4.a
+      - name: net_revenue
+        sql: net_revenue
+        type: sum
+        format: currency
+        description: |
+          Total revenue from items sold. Returned items count as zero, so this is
+          the actual money the business kept.
+
+      # ─── 2/4 — gross_margin_rate (RATIO, aggregation-level) ───
+      # Definition: SUM(gross_margin) / NULLIF(SUM(net_revenue), 0).
+      # ADR-0011 §Decision point 4.b
+      - name: gross_margin_rate
+        sql: "SUM({CUBE}.gross_margin) / NULLIF(SUM({CUBE}.net_revenue), 0)"
+        type: number
+        format: percent
+        description: |
+          Profit margin as a percentage of revenue. A 30% rate means we keep
+          30 cents of profit on every euro earned, after paying for the items.
+
+      # ─── 3/4 — financial_return_rate (RATIO, on sale_price) ───
+      # Definition: SUM(sale_price WHEN status='Returned') / NULLIF(SUM(sale_price), 0).
+      # ADR-0011 §Decision point 4.c
+      # Note: this rate is on GROSS revenue (sale_price), not net_revenue,
+      # because net_revenue is 0 for returns by construction — useless as
+      # a numerator. We need the original transaction value.
+      - name: financial_return_rate
+        sql: "SUM(CASE WHEN {CUBE}.status = 'Returned' THEN {CUBE}.sale_price END) / NULLIF(SUM({CUBE}.sale_price), 0)"
+        type: number
+        format: percent
+        description: |
+          Share of sales (in euros) that customers returned. A 5% rate means
+          5 cents of every euro sold came back as a return.
+
+      # ─── 4/4 — avg_order_value (composite, denominator is order grain) ───
+      # Definition: SUM(net_revenue) / COUNT(DISTINCT order_id).
+      # Cannot be a type=avg (avg averages per-row, this needs per-order
+      # roll-up first). Explicit SQL expression mandatory.
+      # ADR-0011 §Decision point 4.d
+      - name: avg_order_value
+        sql: "SUM({CUBE}.net_revenue) / NULLIF(COUNT(DISTINCT {CUBE}.order_id), 0)"
+        type: number
+        format: currency
+        description: |
+          Average revenue per order. Answers "how much does a typical customer
+          spend in a single order, all items combined?"

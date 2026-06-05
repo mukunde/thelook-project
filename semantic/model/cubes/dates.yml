@@ -1,0 +1,75 @@
+# Cube: dates
+#
+# Mirrors the dim_dates dbt mart (synthetic, generated via dbt_utils.date_spine
+# from 2023-01-01 to current_date + 2 years).
+# Reference: transformation/models/marts/core/dim_dates.sql
+#
+# Per ADR-0011 §Decision point 1 (Strict Kimball reflection), this cube maps
+# 1:1 to the mart, no remodeling. Per §3 (view-only), public: false.
+#
+# No joins are declared here: dim_dates is the TARGET of joins from event
+# cubes (fct_order_items, fct_orders join their date columns to date_day).
+# Cube auto-resolves the reverse direction.
+#
+# No measures: this is a pure dimension cube (no facts to aggregate).
+
+cubes:
+  - name: dates
+    sql_table: ANALYTICS.MARTS.DIM_DATES
+    public: false
+    description: |
+      Conformed date dimension. Calendar attributes for grouping and filtering
+      time-based measures across the Finance domain.
+
+    dimensions:
+      # ─── Primary key (mandatory in Cube) ───
+      - name: date_day
+        sql: date_day
+        type: time
+        primary_key: true
+        description: The calendar day. Use this as the time grain in BI clients.
+
+      # All calendar attributes exposed; the `finance` view curates the subset
+      # surfaced to BI clients.
+
+      # ─── Atomic numeric components ───
+      - name: year
+        sql: year
+        type: number
+
+      - name: quarter
+        sql: quarter
+        type: number
+
+      - name: month
+        sql: month
+        type: number
+
+      - name: day
+        sql: day
+        type: number
+
+      - name: day_of_week
+        sql: day_of_week
+        type: number
+        description: 0 = Sunday, 6 = Saturday (Snowflake DAYOFWEEK convention).
+
+      - name: day_of_year
+        sql: day_of_year
+        type: number
+
+      # ─── Composite string attributes (BI-friendly grouping keys) ───
+      - name: year_month
+        sql: year_month
+        type: string
+        description: "YYYY-MM format (e.g., 2024-07)."
+
+      - name: year_quarter
+        sql: year_quarter
+        type: string
+        description: "YYYY-Qn format (e.g., 2024-Q3)."
+
+      # ─── Behavioural flag ───
+      - name: is_weekend
+        sql: is_weekend
+        type: boolean
