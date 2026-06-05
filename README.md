@@ -2,7 +2,7 @@
 
 > A hands-on modern data stack built around the public [TheLook eCommerce](https://console.cloud.google.com/marketplace/product/bigquery-public-data/thelook-ecommerce) dataset. Snowflake as the single analytic engine, Dagster + Metabase running always-on on OCI Free Tier, the whole platform declared via Terraform.
 
-**Status:** Phase 1 (Infrastructure & Governance) closed: Snowflake RBAC, OCI VM, Terraform Cloud workflows, 11 ADRs. See the [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md). Phase 2 (data engineering) in progress: dlt ingestion and dbt Finance marts are live in `ANALYTICS_DEV`. Cube semantic layer is next.
+**Status:** Phase 1 (Infrastructure & Governance) closed: Snowflake RBAC, OCI VM, Terraform Cloud workflows, 11 ADRs. See the [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md). Phase 2 (data engineering) in progress: dlt ingestion, dbt Finance marts, and the Cube Cloud semantic layer are all live (`ANALYTICS_DEV` for dev, `ANALYTICS.MARTS` for Cube's prod source). Metabase + Evidence + walkthrough Loom are next.
 
 ---
 
@@ -16,7 +16,14 @@ The following surfaces are produced by Phase 2. Phase 1 delivered the platform u
 | Metabase | `https://metabase.<domain>.dev` | Always-on (OCI), Phase 2 |
 | Evidence.dev dashboard | `https://<project>.vercel.app` | Always-on (Vercel, static), Phase 2 |
 | dbt docs (lineage + descriptions) | [mukunde.github.io/thelook-project](https://mukunde.github.io/thelook-project/) | 📡 ![Live](https://img.shields.io/badge/Live-brightgreen?style=flat-square) auto-deployed on merge to main (GitHub Pages) |
+| Cube Cloud semantic layer (Finance) | `https://thelook.cubecloud.dev/` (auth-protected) | 📡 ![Live](https://img.shields.io/badge/Live-brightgreen?style=flat-square) auto-deployed on merge to main, demo via screenshots below |
 | Walk-through video | Loom link | Phase 2 |
+
+Below: the `finance` view in Cube Cloud Explore, built per [ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md) (Strict Kimball reflection, single grain `fct_order_items`, view-only public surface). Same query rendered as chart and as tabular grid: Net Revenue and Gross Margin Rate, sliced by product category and year-month, filtered to non-returned items.
+
+![Cube Explore chart view: Net Revenue and Gross Margin Rate by category, 2026-05 vs 2026-06](docs/screenshots/cube-explore-finance-chart.png)
+
+![Cube Explore tabular view: same query, formatted as currency and percent](docs/screenshots/cube-explore-finance-table.png)
 
 ---
 
@@ -34,7 +41,7 @@ The Finance domain is currently live in dev (Snowflake `ANALYTICS_DEV.dbt_<initi
 
 Business metrics are defined once at the finest grain (`fct_order_items`) and propagated upwards by aggregation (`fct_orders`), so `net_revenue` has a single canonical definition (sale_price when item status is not 'Returned', else 0). See [ADR-0010](docs/ADR/0010-simulated-source-mapping.md) for the narrative source mapping (Segment / Akeneo / Reflex / NetSuite / Shopify Plus / Snowplow + GA4) layered on top of the public TheLook dataset.
 
-Next sprint exposes these metrics via a Cube Cloud semantic layer ([ADR-0007](docs/ADR/0007-semantic-layer-cube-cloud.md)). Once Cube is wired, the marts feed Metabase (live, OCI) and Evidence.dev (static, Vercel) from a single source of metric truth.
+The Cube Cloud semantic layer is now live ([ADR-0007](docs/ADR/0007-semantic-layer-cube-cloud.md) for the stack choice, [ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md) for the modeling conventions): the 4 canonical Finance measures are exposed via a single `finance` view (`net_revenue`, `gross_margin_rate`, `financial_return_rate`, `avg_order_value`), validated by direct SQL cross-check against `ANALYTICS.MARTS.FCT_ORDER_ITEMS`. Next sprint wires Metabase (live, OCI) and Evidence.dev (static, Vercel) on top of this view to materialise the single source of metric truth across BI tools.
 
 ---
 
