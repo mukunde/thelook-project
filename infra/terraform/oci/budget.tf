@@ -43,6 +43,17 @@ resource "oci_budget_budget" "always_free_canary" {
     project = var.project_tag
     purpose = "always-free-canary"
   }
+
+  # OCI HTML-encodes special characters in the description on the API side
+  # (e.g. "€" becomes "&euro;", ">" becomes "&gt;") for safe rendering in
+  # the OCI Console. This creates a permanent diff on every Terraform plan
+  # because the raw Unicode source is compared against the encoded API state.
+  # Description is informational only and never affects budget behaviour,
+  # so we ignore drift on this attribute. The "€0" branding stays intact in
+  # the Terraform source, where it documents the project's TCO promise.
+  lifecycle {
+    ignore_changes = [description]
+  }
 }
 
 # ─── Alert rules ────────────────────────────────────────────
