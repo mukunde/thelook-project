@@ -2,31 +2,42 @@
 
 Docker Compose stack deployed on the OCI Always Free VM.
 
+## Scope
+
+This stack currently focuses on Jalon A.5: Metabase self-service BI on top
+of the Cube semantic layer. Dagster orchestration (Jalon A.3) will be added
+back in a follow-up PR when `orchestration/` code lands.
+
 ## Services
 
 | Service | Image | Port (internal) | Public URL |
 |---|---|---|---|
-| Dagster webserver | `ghcr.io/dagster-io/dagster:latest` | 3000 | `https://dagster.tondomaine.dev` |
-| Dagster daemon | `ghcr.io/dagster-io/dagster:latest` | — | — |
-| Metabase | `metabase/metabase:latest` | 3001 | `https://metabase.tondomaine.dev` |
-| Postgres (Dagster) | `postgres:16-alpine` | 5432 | — |
-| Postgres (Metabase) | `postgres:16-alpine` | 5433 | — |
-| Caddy | `caddy:2-alpine` | 80, 443 | reverse proxy + auto-TLS |
+| Caddy | `caddy:2` | 80, 443 | reverse proxy + auto-TLS |
+| Metabase | `metabase/metabase:v0.50.20` | 3000 | `https://${METABASE_DOMAIN}` |
+| Postgres (Metabase metadata) | `postgres:16` | 5432 | not exposed |
 
 ## Setup
 
 ```bash
-cp .env.example .env   # fill in DOMAIN, secrets, etc.
+cp .env.example .env   # fill in METABASE_DOMAIN, ACME_EMAIL, DB credentials
 docker compose up -d
+docker compose logs -f caddy   # watch for Let's Encrypt issuance
 ```
 
 ## TLS
 
 Caddy handles ACME certificate issuance automatically via Let's Encrypt
-(HTTP-01 challenge on port 80, then redirect to 443). Port 80 must be open
-in the OCI security list (already done by `networking.tf`).
+(HTTP-01 challenge on port 80, then redirect to 443). Two prerequisites
+before bringing the stack up:
 
-## Dagster workspace
+1. The DNS A record `${METABASE_DOMAIN}` must already resolve to the OCI
+   VM's Reserved Public IP. The HTTP-01 challenge needs DNS to validate
+   before the cert is issued.
+2. Ports 80 and 443 must be open in the OCI security list (already done
+   by `infra/terraform/oci/networking.tf`).
 
-`workspace.yaml` tells Dagster where to find code locations.
-Add entries as ingestion / transformation / orchestration modules land.
+## Architecture
+
+Only Caddy exposes ports to the host. Metabase and its metadata Postgres
+sit on internal Docker networks reachable only through Caddy. Named
+volumes (not bind mounts) for easier backup via rclone.
