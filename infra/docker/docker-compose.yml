@@ -69,7 +69,11 @@ services:
       retries: 5
 
   metabase:
-    image: metabase/metabase:v0.50.20
+    # Multi-arch (linux/amd64 + linux/arm64) image. Metabase started officially
+    # shipping ARM64 manifests in v0.51.x; pinning to v0.52.10 ensures the OCI
+    # ARM A1 host runs the image natively instead of through QEMU emulation
+    # (which makes initial DB migrations 10x slower and pegs the CPU).
+    image: metabase/metabase:v0.52.10
     restart: unless-stopped
     environment:
       MB_DB_TYPE: postgres
