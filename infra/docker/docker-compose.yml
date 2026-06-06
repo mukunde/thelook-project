@@ -69,11 +69,19 @@ services:
       retries: 5
 
   metabase:
-    # Multi-arch (linux/amd64 + linux/arm64) image. Metabase started officially
-    # shipping ARM64 manifests in v0.51.x; pinning to v0.52.10 ensures the OCI
-    # ARM A1 host runs the image natively instead of through QEMU emulation
-    # (which makes initial DB migrations 10x slower and pegs the CPU).
-    image: metabase/metabase:v0.52.10
+    # Multi-arch (linux/amd64 + linux/arm64) image required for the OCI ARM
+    # A1 host. As of 2026-06, Metabase ships ARM64 manifests only under the
+    # `latest` tag: specific version tags (v0.52.x, v0.55.x) are amd64-only
+    # (verified via `docker manifest inspect`), which would force QEMU
+    # emulation and ~10x slowdown on initial DB migrations.
+    #
+    # Trade-off: `latest` is not reproducible. To pin without losing arm64,
+    # capture the current digest with:
+    #   docker pull metabase/metabase:latest
+    #   docker images --digests metabase/metabase
+    # then replace `:latest` with `@sha256:<digest>` here. TODO once the
+    # stack is stable enough to commit to a fixed version.
+    image: metabase/metabase:latest
     restart: unless-stopped
     environment:
       MB_DB_TYPE: postgres

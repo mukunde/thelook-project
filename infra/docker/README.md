@@ -13,7 +13,7 @@ back in a follow-up PR when `orchestration/` code lands.
 | Service | Image | Port (internal) | Public URL |
 |---|---|---|---|
 | Caddy | `caddy:2` | 80, 443 | reverse proxy + auto-TLS |
-| Metabase | `metabase/metabase:v0.52.10` | 3000 | `https://${METABASE_DOMAIN}` |
+| Metabase | `metabase/metabase:latest` (only multi-arch tag) | 3000 | `https://${METABASE_DOMAIN}` |
 | Postgres (Metabase metadata) | `postgres:16` | 5432 | not exposed |
 
 ## Setup
