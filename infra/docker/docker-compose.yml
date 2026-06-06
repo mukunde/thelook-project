@@ -3,10 +3,17 @@
 # Design notes:
 #   - Only Caddy exposes ports to the host (80/443). Everything else is on
 #     internal networks, reachable only through Caddy.
-#   - Dagster and Metabase have separate Postgres instances to keep their
-#     lifecycles independent (image upgrades, DB wipes).
+#   - Metabase has its own Postgres for the application metadata DB, kept
+#     in a separate "metabase" internal network from "edge" so Caddy is
+#     the single ingress.
 #   - Named volumes (not bind mounts) for easier backup via rclone.
 #   - Image tags pinned to majors; review before bumping.
+#
+# Scope: this stack focuses on the Caddy + Metabase pair for Jalon A.5
+# (self-service BI on top of Cube semantic layer). Dagster orchestration
+# (Jalon A.3) will be added back in a follow-up PR when orchestration/
+# code lands; the workspace + image set is intentionally absent here to
+# avoid running services with no payload.
 
 name: thelook
 
@@ -14,10 +21,6 @@ networks:
   edge:
     # Caddy <-> public-facing services
     driver: bridge
-  dagster:
-    # Dagster webserver <-> daemon <-> postgres
-    driver: bridge
-    internal: true
   metabase:
     # Metabase <-> its postgres
     driver: bridge
@@ -26,8 +29,6 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
-  dagster_postgres_data:
-  dagster_home:
   metabase_postgres_data:
   metabase_data:
 
@@ -40,77 +41,14 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:
-      DAGSTER_DOMAIN: ${DAGSTER_DOMAIN}
       METABASE_DOMAIN: ${METABASE_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
-      DAGSTER_BASIC_AUTH_USER: ${DAGSTER_BASIC_AUTH_USER}
-      DAGSTER_BASIC_AUTH_HASH: ${DAGSTER_BASIC_AUTH_HASH}
     networks:
       - edge
-
-  # ── Dagster ─────────────────────────────────────────────
-  dagster-postgres:
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${DAGSTER_DB_USER}
-      POSTGRES_PASSWORD: ${DAGSTER_DB_PASSWORD}
-      POSTGRES_DB: ${DAGSTER_DB_NAME}
-    volumes:
-      - dagster_postgres_data:/var/lib/postgresql/data
-    networks:
-      - dagster
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DAGSTER_DB_USER} -d ${DAGSTER_DB_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  dagster-webserver:
-    image: dagster/dagster-celery-k8s:1.8.8
-    restart: unless-stopped
-    command: ["dagster-webserver", "-h", "0.0.0.0", "-p", "3000", "-w", "/opt/dagster/workspace.yaml"]
-    environment:
-      DAGSTER_POSTGRES_USER: ${DAGSTER_DB_USER}
-      DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_DB_PASSWORD}
-      DAGSTER_POSTGRES_DB: ${DAGSTER_DB_NAME}
-      DAGSTER_POSTGRES_HOSTNAME: dagster-postgres
-      DAGSTER_HOME: /opt/dagster/dagster_home
-    volumes:
-      - dagster_home:/opt/dagster/dagster_home
-      # The Dagster code location (workspace.yaml + user code) is mounted
-      # from the repo deployed to /opt/thelook/orchestration/ in a later
-      # iteration. Placeholder path below — adjust when orchestration/ lands.
-      - ./dagster-workspace:/opt/dagster/workspace:ro
-    depends_on:
-      dagster-postgres:
-        condition: service_healthy
-    networks:
-      - dagster
-      - edge
-
-  dagster-daemon:
-    image: dagster/dagster-celery-k8s:1.8.8
-    restart: unless-stopped
-    command: ["dagster-daemon", "run"]
-    environment:
-      DAGSTER_POSTGRES_USER: ${DAGSTER_DB_USER}
-      DAGSTER_POSTGRES_PASSWORD: ${DAGSTER_DB_PASSWORD}
-      DAGSTER_POSTGRES_DB: ${DAGSTER_DB_NAME}
-      DAGSTER_POSTGRES_HOSTNAME: dagster-postgres
-      DAGSTER_HOME: /opt/dagster/dagster_home
-    volumes:
-      - dagster_home:/opt/dagster/dagster_home
-      - ./dagster-workspace:/opt/dagster/workspace:ro
-    depends_on:
-      dagster-postgres:
-        condition: service_healthy
-    networks:
-      - dagster
 
   # ── Metabase ────────────────────────────────────────────
   metabase-postgres:
