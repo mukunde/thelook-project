@@ -2,7 +2,7 @@
 
 > A hands-on modern data stack built around the public [TheLook eCommerce](https://console.cloud.google.com/marketplace/product/bigquery-public-data/thelook-ecommerce) dataset. Snowflake as the single analytic engine, Dagster + Metabase running always-on on OCI Free Tier, the whole platform declared via Terraform.
 
-**Status:** Phase 1 (Infrastructure & Governance) closed: Snowflake RBAC, OCI VM, Terraform Cloud workflows, 11 ADRs. See the [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md). Phase 2 (data engineering) in progress: dlt ingestion, dbt Finance marts, and the Cube Cloud semantic layer are all live (`ANALYTICS_DEV` for dev, `ANALYTICS.MARTS` for Cube's prod source). Metabase + Evidence + walkthrough Loom are next.
+**Status:** Phase 1 (Infrastructure & Governance) closed: Snowflake RBAC, OCI VM, Terraform Cloud workflows, 12 ADRs. See the [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md). Phase 2 (data engineering) in progress: dlt ingestion, dbt Finance marts, the Cube Cloud semantic layer, and Metabase self-service BI are all live (`ANALYTICS_DEV` for dev, `ANALYTICS.MARTS` for Cube's prod source consumed by Metabase via Cube SQL API). Cube MCP server for AI agents + walkthrough Loom are next.
 
 ---
 
@@ -13,17 +13,18 @@ The following surfaces are produced by Phase 2. Phase 1 delivered the platform u
 | Surface | URL | Availability |
 |---|---|---|
 | Dagster UI | `https://dagster.<domain>.dev` | Always-on (OCI), Phase 2 |
-| Metabase | `https://metabase.<domain>.dev` | Always-on (OCI), Phase 2 |
-| Evidence.dev dashboard | `https://<project>.vercel.app` | Always-on (Vercel, static), Phase 2 |
+| Metabase (self-service BI on Cube SQL API) | [metabase.gaelmukunde.dev](https://metabase.gaelmukunde.dev) | 📡 ![Live](https://img.shields.io/badge/Live-brightgreen?style=flat-square) docker-compose on OCI VM, TLS via Caddy + Let's Encrypt |
 | dbt docs (lineage + descriptions) | [mukunde.github.io/thelook-project](https://mukunde.github.io/thelook-project/) | 📡 ![Live](https://img.shields.io/badge/Live-brightgreen?style=flat-square) auto-deployed on merge to main (GitHub Pages) |
 | Cube Cloud semantic layer (Finance) | `https://thelook.cubecloud.dev/` (auth-protected) | 📡 ![Live](https://img.shields.io/badge/Live-brightgreen?style=flat-square) auto-deployed on merge to main, demo via screenshots below |
 | Walk-through video | Loom link | Phase 2 |
 
-Below: the `finance` view in Cube Cloud Explore, built per [ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md) (Strict Kimball reflection, single grain `fct_order_items`, view-only public surface). Same query rendered as chart and as tabular grid: Net Revenue and Gross Margin Rate, sliced by product category and year-month, filtered to non-returned items.
+Below: the `finance` view consumed across **three surfaces** with identical values to the cent, demonstrating single source of metric truth ([ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md): Strict Kimball reflection, single grain `fct_order_items`, view-only public surface). Same query (Net Revenue and Gross Margin Rate sliced by product category and year-month, filtered to non-returned items) rendered in **Cube Cloud Explore** (chart + tabular grid) and in **Metabase** (consumed via Cube SQL API). The fourth surface, a direct SQL aggregation on `ANALYTICS.MARTS.FCT_ORDER_ITEMS`, returns the same values and is the verification baseline.
 
 ![Cube Explore chart view: Net Revenue and Gross Margin Rate by category, 2026-05 vs 2026-06](docs/screenshots/cube-explore-finance-chart.png)
 
 ![Cube Explore tabular view: same query, formatted as currency and percent](docs/screenshots/cube-explore-finance-table.png)
+
+![Metabase chart of the same finance view consumed via Cube SQL API: same Net Revenue values per category and year-month](docs/screenshots/metabase-finance-chart.png)
 
 ---
 
@@ -41,7 +42,7 @@ The Finance domain is currently live in dev (Snowflake `ANALYTICS_DEV.dbt_<initi
 
 Business metrics are defined once at the finest grain (`fct_order_items`) and propagated upwards by aggregation (`fct_orders`), so `net_revenue` has a single canonical definition (sale_price when item status is not 'Returned', else 0). See [ADR-0010](docs/ADR/0010-simulated-source-mapping.md) for the narrative source mapping (Segment / Akeneo / Reflex / NetSuite / Shopify Plus / Snowplow + GA4) layered on top of the public TheLook dataset.
 
-The Cube Cloud semantic layer is now live ([ADR-0007](docs/ADR/0007-semantic-layer-cube-cloud.md) for the stack choice, [ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md) for the modeling conventions): the 4 canonical Finance measures are exposed via a single `finance` view (`net_revenue`, `gross_margin_rate`, `financial_return_rate`, `avg_order_value`), validated by direct SQL cross-check against `ANALYTICS.MARTS.FCT_ORDER_ITEMS`. Next sprint wires Metabase (live, OCI) and Evidence.dev (static, Vercel) on top of this view to materialise the single source of metric truth across BI tools.
+The Cube Cloud semantic layer and the Metabase self-service consumer are both live ([ADR-0007](docs/ADR/0007-semantic-layer-cube-cloud.md) for the semantic layer stack choice, [ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md) for the modeling conventions, [ADR-0012](docs/ADR/0012-replace-evidence-with-metabase-oss.md) for the Metabase-over-Evidence pivot and Code-First scope refinement). The 4 canonical Finance measures (`net_revenue`, `gross_margin_rate`, `financial_return_rate`, `avg_order_value`) are exposed via a single `finance` view and consumed identically from Cube Cloud Explore (analyst-facing) and Metabase (end-user self-service), cross-validated to the cent against direct SQL on `ANALYTICS.MARTS.FCT_ORDER_ITEMS`. Next: Cube MCP server to extend the same semantic layer to AI agents, then the walkthrough Loom.
 
 ---
 
@@ -111,7 +112,7 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Ver
 ├── ingestion/                                     ← dlt pipelines (uv workspace member), Finance scope live
 ├── transformation/                                ← dbt project (uv workspace member), Finance staging + marts live
 ├── docs/
-│   ├── ADR/                                       ← Architecture Decision Records (ADR-0000 to ADR-0010)
+│   ├── ADR/                                       ← Architecture Decision Records (ADR-0000 to ADR-0012)
 │   └── infrastructure-and-governance-phase-report.md   ← Phase 1 closure report
 ├── infra/
 │   └── terraform/
@@ -358,6 +359,8 @@ Metabase dashboards keep their last-successful-query results cached, so the live
 | [ADR-0008](docs/ADR/0008-admin-bootstrap-retained-as-break-glass.md) | `admin_bootstrap` retained as break-glass with compensating controls |
 | [ADR-0009](docs/ADR/0009-oci-payg-with-cost-guardrails.md) | OCI Pay-As-You-Go with €0 cost guardrails |
 | [ADR-0010](docs/ADR/0010-simulated-source-mapping.md) | Simulated source mapping for portfolio narrative (TheLook → 6 simulated French upstream systems) |
+| [ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md) | Cube modeling conventions for the Finance domain (Strict Kimball reflection, single grain, view-only) |
+| [ADR-0012](docs/ADR/0012-replace-evidence-with-metabase-oss.md) | Replace Evidence with Metabase OSS, refine Code-First scope for self-service BI |
 
 ## Phase reports
 
