@@ -38,6 +38,14 @@ views:
           - gross_margin_rate
           - financial_return_rate
           - avg_order_value
+          # Additive components (for consumers that recompose ratios from
+          # additive sums, e.g. the KTX context layer; see order_items.yml)
+          - gross_revenue
+          - gross_margin
+          - returned_revenue
+          # Identifiers (grain + order-level rollups for downstream consumers)
+          - order_item_id
+          - order_id
           # Row-level dimensions
           - status
           - ordered_date

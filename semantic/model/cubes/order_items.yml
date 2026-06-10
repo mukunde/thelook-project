@@ -123,6 +123,35 @@ cubes:
         type: count
         description: "Total number of item lines across orders, including returned items."
 
+      # ─── Additive components ───
+      # Plain sums exposed so that downstream consumers that can only
+      # roll up additive measures (e.g. the KTX context layer, whose SQL
+      # parser accepts a closed list of aggregate functions) can recompose
+      # the canonical ratios from the same components at any granularity.
+      - name: gross_revenue
+        sql: sale_price
+        type: sum
+        format: currency
+        description: |
+          Total sales value before accounting for returns (SUM of sale_price,
+          returned items included at their original price).
+
+      - name: gross_margin
+        sql: gross_margin
+        type: sum
+        format: currency
+        description: |
+          Total profit after item costs (SUM of per-line gross_margin,
+          net_revenue minus cost).
+
+      - name: returned_revenue
+        sql: "CASE WHEN {CUBE}.status = 'Returned' THEN {CUBE}.sale_price ELSE 0 END"
+        type: sum
+        format: currency
+        description: |
+          Sales value lost to returns (SUM of sale_price for returned items
+          only). Numerator of financial_return_rate.
+
       # ─── 1/4 — net_revenue ───
       # Definition: SUM(net_revenue) where net_revenue is already encoded as
       # "0 when status='Returned'" in the dbt mart (DRY: defined ONCE in
