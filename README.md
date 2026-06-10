@@ -2,7 +2,7 @@
 
 > A hands-on modern data stack built around the public [TheLook eCommerce](https://console.cloud.google.com/marketplace/product/bigquery-public-data/thelook-ecommerce) dataset. Snowflake as the single analytic engine, Dagster + Metabase running always-on on OCI Free Tier, the whole platform declared via Terraform.
 
-**Status:** Phase 1 (Infrastructure & Governance) closed: Snowflake RBAC, OCI VM, Terraform Cloud workflows, 12 ADRs. See the [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md). Phase 2 (data engineering) in progress: dlt ingestion, dbt Finance marts, the Cube Cloud semantic layer, and Metabase self-service BI are all live (`ANALYTICS_DEV` for dev, `ANALYTICS.MARTS` for Cube's prod source consumed by Metabase via Cube SQL API). Cube MCP server for AI agents + walkthrough Loom are next.
+**Status:** Phase 1 (Infrastructure & Governance) closed: Snowflake RBAC, OCI VM, Terraform Cloud workflows, 13 ADRs. See the [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md). Phase 2 (data engineering) in progress: dlt ingestion, dbt Finance marts, the Cube Cloud semantic layer, Metabase self-service BI, and the KTX context layer for AI agents (MCP) are all live. The same canonical metrics are consumed by analysts (Cube Explore), end-users (Metabase), and AI agents (Claude via KTX MCP), cross-validated to the cent. Walkthrough Loom + blog are next.
 
 ---
 
@@ -16,9 +16,10 @@ The following surfaces are produced by Phase 2. Phase 1 delivered the platform u
 | Metabase (self-service BI on Cube SQL API) | [metabase.gaelmukunde.dev](https://metabase.gaelmukunde.dev) | 📡 ![Live](https://img.shields.io/badge/Live-brightgreen?style=flat-square) docker-compose on OCI VM, TLS via Caddy + Let's Encrypt |
 | dbt docs (lineage + descriptions) | [mukunde.github.io/thelook-project](https://mukunde.github.io/thelook-project/) | 📡 ![Live](https://img.shields.io/badge/Live-brightgreen?style=flat-square) auto-deployed on merge to main (GitHub Pages) |
 | Cube Cloud semantic layer (Finance) | `https://thelook.cubecloud.dev/` (auth-protected) | 📡 ![Live](https://img.shields.io/badge/Live-brightgreen?style=flat-square) auto-deployed on merge to main, demo via screenshots below |
+| KTX context layer (AI agents via MCP) | local MCP server ([semantic-context/](semantic-context/)) | 📡 ![Live](https://img.shields.io/badge/Live-brightgreen?style=flat-square) wired to Claude via Model Context Protocol, [ADR-0013](docs/ADR/0013-ktx-context-layer-for-ai-agents.md) |
 | Walk-through video | Loom link | Phase 2 |
 
-Below: the `finance` view consumed across **three surfaces** with identical values to the cent, demonstrating single source of metric truth ([ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md): Strict Kimball reflection, single grain `fct_order_items`, view-only public surface). Same query (Net Revenue and Gross Margin Rate sliced by product category and year-month, filtered to non-returned items) rendered in **Cube Cloud Explore** (chart + tabular grid) and in **Metabase** (consumed via Cube SQL API). The fourth surface, a direct SQL aggregation on `ANALYTICS.MARTS.FCT_ORDER_ITEMS`, returns the same values and is the verification baseline.
+Below: the `finance` view consumed across **four surfaces** with identical values to the cent, demonstrating single source of metric truth ([ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md): Strict Kimball reflection, single grain `fct_order_items`, view-only public surface). Same query (Net Revenue and Gross Margin Rate sliced by product category and year-month, filtered to non-returned items) rendered in **Cube Cloud Explore** (chart + tabular grid), in **Metabase** (consumed via Cube SQL API), and by **AI agents** through the KTX MCP tools (same values, e.g. Sweaters 2026-06 margin = 51.98% on every surface). The verification baseline, a direct SQL aggregation on `ANALYTICS.MARTS.FCT_ORDER_ITEMS`, returns the same values.
 
 ![Cube Explore chart view: Net Revenue and Gross Margin Rate by category, 2026-05 vs 2026-06](docs/screenshots/cube-explore-finance-chart.png)
 
@@ -42,7 +43,7 @@ The Finance domain is currently live in dev (Snowflake `ANALYTICS_DEV.dbt_<initi
 
 Business metrics are defined once at the finest grain (`fct_order_items`) and propagated upwards by aggregation (`fct_orders`), so `net_revenue` has a single canonical definition (sale_price when item status is not 'Returned', else 0). See [ADR-0010](docs/ADR/0010-simulated-source-mapping.md) for the narrative source mapping (Segment / Akeneo / Reflex / NetSuite / Shopify Plus / Snowplow + GA4) layered on top of the public TheLook dataset.
 
-The Cube Cloud semantic layer and the Metabase self-service consumer are both live ([ADR-0007](docs/ADR/0007-semantic-layer-cube-cloud.md) for the semantic layer stack choice, [ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md) for the modeling conventions, [ADR-0012](docs/ADR/0012-replace-evidence-with-metabase-oss.md) for the Metabase-over-Evidence pivot and Code-First scope refinement). The 4 canonical Finance measures (`net_revenue`, `gross_margin_rate`, `financial_return_rate`, `avg_order_value`) are exposed via a single `finance` view and consumed identically from Cube Cloud Explore (analyst-facing) and Metabase (end-user self-service), cross-validated to the cent against direct SQL on `ANALYTICS.MARTS.FCT_ORDER_ITEMS`. Next: Cube MCP server to extend the same semantic layer to AI agents, then the walkthrough Loom.
+The full consumption stack is live: Cube Cloud semantic layer ([ADR-0007](docs/ADR/0007-semantic-layer-cube-cloud.md), [ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md)), Metabase self-service ([ADR-0012](docs/ADR/0012-replace-evidence-with-metabase-oss.md)), and the KTX context layer exposing the same metrics to AI agents over MCP ([ADR-0013](docs/ADR/0013-ktx-context-layer-for-ai-agents.md)). The 4 canonical Finance measures (`net_revenue`, `gross_margin_rate`, `financial_return_rate`, `avg_order_value`) are exposed via a single `finance` view and consumed identically from Cube Cloud Explore (analysts), Metabase (end-user self-service), and Claude through KTX MCP tools (agents), cross-validated to the cent against direct SQL on `ANALYTICS.MARTS.FCT_ORDER_ITEMS`. KTX adds the business context no schema can carry: versioned wiki pages (never average rate columns, the 2023-01-01 analytical horizon, value-weighted vs volume return rates) that agents read before querying. Next: the walkthrough Loom and the first blog post.
 
 ---
 
@@ -63,15 +64,17 @@ Snowflake  ─ RAW ─ ANALYTICS ─ ANALYTICS_DEV
        │
        │  dbt Core  (Kimball star schema, contracts enforced on staging)
        ▼
-   dim_* / fct_*  ──►  Cube Cloud (semantic layer)
+   dim_* / fct_*  ──►  Cube Cloud (semantic layer, single execution path)
                            │
-                           ├─► Evidence.dev   (static, Vercel)
-                           ├─► Metabase       (live, OCI VM)
-                           └─► Python notebook (metric unicity check, CI artifact)
+                           ├─► Cube Explore   (analysts)
+                           ├─► SQL API ──► Metabase (end-users, live, OCI VM)
+                           └─► SQL API ──► KTX context layer (semantic YAML + wiki)
+                                               │
+                                               └─► MCP ──► Claude / AI agents
 
 Orchestration: Dagster OSS on OCI VM (always-on)
 IaC: Terraform — snowflakedb/snowflake + oracle/oci providers
-CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Vercel deploy)
+CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply)
 ```
 
 ## Design principles
@@ -111,18 +114,22 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply + Ver
 ├── .gitignore
 ├── ingestion/                                     ← dlt pipelines (uv workspace member), Finance scope live
 ├── transformation/                                ← dbt project (uv workspace member), Finance staging + marts live
+├── semantic/                                      ← Cube semantic layer (cubes + finance view), auto-deployed to Cube Cloud
+├── semantic-context/                              ← KTX context layer for AI agents (semantic overlay + wiki + MCP)
 ├── docs/
-│   ├── ADR/                                       ← Architecture Decision Records (ADR-0000 to ADR-0012)
+│   ├── ADR/                                       ← Architecture Decision Records (ADR-0000 to ADR-0013)
+│   ├── screenshots/                               ← metric-unicity demo captures (Cube Explore, Metabase)
 │   └── infrastructure-and-governance-phase-report.md   ← Phase 1 closure report
 ├── infra/
-│   └── terraform/
-│       ├── snowflake/                             ← databases, warehouses, roles, grants, users
-│       └── oci/                                   ← VCN, VM Ampere A1, Bastion, quotas, budget
+│   ├── terraform/
+│   │   ├── snowflake/                             ← databases, warehouses, roles, grants, users
+│   │   └── oci/                                   ← VCN, VM Ampere A1, Bastion, quotas, budget
+│   └── docker/                                    ← Caddy + Metabase compose stack deployed on the OCI VM
 └── .github/
-    └── workflows/                                 ← Python CI, Terraform CI
+    └── workflows/                                 ← Python CI, Terraform CI, dbt docs deploy
 ```
 
-Future Phase 2 additions (not yet present): `orchestration/` (Dagster), `semantic/` (Cube), `bi/` (Evidence), `notebooks/`, and `infra/docker/` (Docker Compose stack for the OCI VM).
+Future Phase 2 additions (not yet present): `orchestration/` (Dagster) and `notebooks/`.
 
 ## Getting Started
 
@@ -361,6 +368,7 @@ Metabase dashboards keep their last-successful-query results cached, so the live
 | [ADR-0010](docs/ADR/0010-simulated-source-mapping.md) | Simulated source mapping for portfolio narrative (TheLook → 6 simulated French upstream systems) |
 | [ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md) | Cube modeling conventions for the Finance domain (Strict Kimball reflection, single grain, view-only) |
 | [ADR-0012](docs/ADR/0012-replace-evidence-with-metabase-oss.md) | Replace Evidence with Metabase OSS, refine Code-First scope for self-service BI |
+| [ADR-0013](docs/ADR/0013-ktx-context-layer-for-ai-agents.md) | KTX context layer wrapping Cube for AI agent consumption (MCP) |
 
 ## Phase reports
 
