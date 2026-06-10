@@ -1,0 +1,80 @@
+setup:
+  database_connection_ids:
+    - cube
+connections:
+  cube:
+    driver: postgres
+    host: roasted-tibbie.sql.aws-eu-central-1.cubecloudapp.dev
+    port: 5432
+    database: roasted-tibbie
+    username: cube
+    password: file:/mnt/c/Users/gaelm/Projects/thelook-project/semantic-context/.ktx/secrets/cube-password
+    context:
+      queryHistory:
+        enabled: false
+storage:
+  state: sqlite
+  search: sqlite-fts5
+  git:
+    # Disabled: KTX must not commit directly to the parent repo's current
+    # branch. All changes to semantic-layer/ and wiki/ flow through the
+    # standard feature-branch + PR workflow, reviewed like any other code.
+    auto_commit: false
+    author: ktx <ktx@example.com>
+llm:
+  provider:
+    backend: anthropic
+    anthropic:
+      api_key: file:/mnt/c/Users/gaelm/Projects/thelook-project/semantic-context/.ktx/secrets/anthropic-api-key
+  models:
+    default: claude-sonnet-4-6
+    triage: claude-haiku-4-5
+    candidateExtraction: claude-sonnet-4-6
+    curator: claude-opus-4-7
+    reconcile: claude-opus-4-7
+    repair: claude-haiku-4-5
+  promptCaching:
+    enabled: true
+ingest:
+  embeddings:
+    backend: openai
+    model: text-embedding-3-small
+    dimensions: 1536
+    openai:
+      api_key: file:/mnt/c/Users/gaelm/Projects/thelook-project/semantic-context/.ktx/secrets/openai-api-key
+  workUnits:
+    stepBudget: 40
+    maxConcurrency: 1
+    failureMode: continue
+agent:
+  run_research:
+    enabled: false
+    max_iterations: 20
+    default_toolset:
+      - sl_query
+      - wiki_search
+      - sl_read_source
+memory:
+  # Disabled for the same reason as storage.git.auto_commit: memory ingests
+  # write to wiki/ and semantic-layer/, which we review through PRs.
+  auto_commit: false
+scan:
+  enrichment:
+    mode: llm
+    embeddings:
+      backend: openai
+      model: text-embedding-3-small
+      dimensions: 1536
+      openai:
+        api_key: file:/mnt/c/Users/gaelm/Projects/thelook-project/semantic-context/.ktx/secrets/openai-api-key
+  relationships:
+    enabled: true
+    llmProposals: true
+    validationRequiredForManifest: true
+    acceptThreshold: 0.85
+    reviewThreshold: 0.55
+    maxLlmTablesPerBatch: 40
+    maxCandidatesPerColumn: 25
+    profileSampleRows: 10000
+    profileConcurrency: 4
+    validationConcurrency: 4
