@@ -1,0 +1,36 @@
+[
+  {
+    "table": {
+      "catalog": null,
+      "db": "public",
+      "name": "finance"
+    },
+    "tableDescription": "Financial performance metrics for orders, combining revenue, margins, returns, and customer/product dimensions.",
+    "columnDescriptions": {
+      "count": "Total order line items including returned ones.",
+      "net_revenue": "Actual revenue retained after excluding returned items.",
+      "gross_margin_rate": "Profit percentage kept per euro of revenue after item costs.",
+      "financial_return_rate": "Percentage of sold euros returned by customers.",
+      "avg_order_value": "Typical total spend per single customer order.",
+      "status": "General status indicator for the record or order.",
+      "ordered_date": "Timestamp when the order was placed.",
+      "delivered_date": "Timestamp when the order was delivered to the customer.",
+      "is_returned": "Flags whether the order line item was returned.",
+      "is_delivered": "Flags whether the order was successfully delivered.",
+      "products_category": "Product category grouping for the sold item.",
+      "products_brand": "Brand of the sold product.",
+      "products_department": "Department classification of the sold product.",
+      "users_country": "Country of the customer who placed the order.",
+      "users_state": "State or region of the customer.",
+      "users_gender": "Gender of the customer.",
+      "users_traffic_source": "Marketing channel that acquired the customer.",
+      "orders_status": "Current fulfillment or processing status of the order.",
+      "dates_year": "Year extracted from the order date.",
+      "dates_year_month": "Year and month in YYYY-MM format.",
+      "dates_year_quarter": "Year and quarter in YYYY-Qn format.",
+      "dates_is_weekend": "Flags whether the order was placed on a weekend.",
+      "__user": "Virtual column used for row-level security context switching.",
+      "__cubeJoinField": "Virtual column used internally for joining data cubes."
+    }
+  }
+]

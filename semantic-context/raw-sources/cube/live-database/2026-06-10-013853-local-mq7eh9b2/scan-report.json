@@ -1,0 +1,72 @@
+{
+  "connectionId": "cube",
+  "driver": "postgres",
+  "syncId": "2026-06-10-013853-local-mq7eh9b2",
+  "runId": "local-mq7f34gt",
+  "trigger": "cli",
+  "mode": "enriched",
+  "dryRun": false,
+  "artifactPaths": {
+    "rawSourcesDir": "raw-sources/cube/live-database/2026-06-10-013853-local-mq7eh9b2",
+    "reportPath": "raw-sources/cube/live-database/2026-06-10-013853-local-mq7eh9b2/scan-report.json",
+    "manifestShards": [
+      "semantic-layer/cube/_schema/public.yaml"
+    ],
+    "enrichmentArtifacts": []
+  },
+  "diffSummary": {
+    "tablesAdded": 0,
+    "tablesModified": 0,
+    "tablesDeleted": 0,
+    "tablesUnchanged": 1,
+    "columnsAdded": 0,
+    "columnsModified": 0,
+    "columnsDeleted": 0
+  },
+  "manifestShardsWritten": 1,
+  "structuralSyncStats": {
+    "tablesCreated": 0,
+    "tablesUpdated": 0,
+    "tablesDeleted": 0,
+    "columnsCreated": 0,
+    "columnsUpdated": 0,
+    "columnsDeleted": 0
+  },
+  "enrichment": {
+    "dataDictionary": "failed",
+    "tableDescriptions": "failed",
+    "columnDescriptions": "failed",
+    "embeddings": "failed",
+    "deterministicRelationships": "failed",
+    "llmRelationshipValidation": "failed",
+    "statisticalValidation": "failed"
+  },
+  "capabilityGaps": [],
+  "warnings": [
+    {
+      "code": "enrichment_failed",
+      "message": "KTX scan enrichment failed after structural scan completed: Failed to commit file: [WARNING] Unstaged files detected.\n[INFO] Stashing unstaged files to /home/mukunde/.cache/pre-commit/patch1781056596-6833.\ngitleaks (detect committed secrets)......................................Passed\ntrim trailing whitespace.................................................Passed\nfix end of files.........................................................Passed\ncheck for merge conflicts................................................Passed\ncheck yaml...........................................(no files to check)Skipped\ncheck toml...........................................(no files to check)Skipped\ncheck for added large files..............................................Failed\n- hook id: check-added-large-files\n- exit code: 1\n\nsemantic-context/raw-sources/cube/live-database/2026-06-10-013853-local-mq7eh9b2/enrichment/embeddings.json (1148 KB) exceeds 1000 KB.\n\ndetect private key.......................................................Passed\nmixed line ending........................................................Passed\nruff.................................................(no files to check)Skipped\nruff-format..........................................(no files to check)Skipped\nTerraform fmt........................................(no files to check)Skipped\nTerraform validate...................................(no files to check)Skipped\nTerraform validate with tflint.......................(no files to check)Skipped\n[INFO] Restored changes from /home/mukunde/.cache/pre-commit/patch1781056596-6833.\n",
+      "recoverable": true,
+      "metadata": {
+        "mode": "enriched",
+        "detectRelationships": true
+      }
+    }
+  ],
+  "relationships": {
+    "accepted": 0,
+    "review": 0,
+    "rejected": 0,
+    "skipped": 0
+  },
+  "enrichmentState": {
+    "resumedStages": [],
+    "completedStages": [
+      "descriptions",
+      "embeddings",
+      "relationships"
+    ],
+    "failedStages": []
+  },
+  "createdAt": "2026-06-10T01:55:55.980Z"
+}
