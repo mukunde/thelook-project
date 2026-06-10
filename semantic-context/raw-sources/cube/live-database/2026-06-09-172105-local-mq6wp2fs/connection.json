@@ -1,0 +1,20 @@
+{
+  "connectionId": "cube",
+  "driver": "postgres",
+  "extractedAt": "2026-06-09T17:21:07.326Z",
+  "scope": {
+    "schemas": [
+      "public"
+    ]
+  },
+  "metadata": {
+    "database": "roasted-tibbie",
+    "schemas": [
+      "public"
+    ],
+    "host": "roasted-tibbie.sql.aws-eu-central-1.cubecloudapp.dev",
+    "table_count": 1,
+    "total_columns": 24
+  },
+  "tableCount": 1
+}

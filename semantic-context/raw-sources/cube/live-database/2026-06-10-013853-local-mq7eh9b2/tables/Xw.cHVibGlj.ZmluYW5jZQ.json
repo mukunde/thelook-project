@@ -1,0 +1,272 @@
+{
+  "catalog": null,
+  "db": "public",
+  "name": "finance",
+  "kind": "table",
+  "comment": "Finance domain BI surface. Exposes the 4 canonical Finance measures\n(net_revenue, gross_margin_rate, financial_return_rate, avg_order_value)\nalong with a curated set of dimensions for cohorting (time, geography,\nproduct taxonomy, order status).\n",
+  "estimatedRows": -1,
+  "columns": [
+    {
+      "name": "count",
+      "nativeType": "bigint",
+      "normalizedType": "bigint",
+      "dimensionType": "number",
+      "nullable": false,
+      "primaryKey": false,
+      "comment": "Total number of item lines across orders, including returned items."
+    },
+    {
+      "name": "net_revenue",
+      "nativeType": "numeric",
+      "normalizedType": "numeric",
+      "dimensionType": "number",
+      "nullable": false,
+      "primaryKey": false,
+      "comment": "Total revenue from items sold. Returned items count as zero, so this is\nthe actual money the business kept.\n"
+    },
+    {
+      "name": "gross_margin_rate",
+      "nativeType": "numeric",
+      "normalizedType": "numeric",
+      "dimensionType": "number",
+      "nullable": false,
+      "primaryKey": false,
+      "comment": "Profit margin as a percentage of revenue. A 30% rate means we keep\n30 cents of profit on every euro earned, after paying for the items.\n"
+    },
+    {
+      "name": "financial_return_rate",
+      "nativeType": "numeric",
+      "normalizedType": "numeric",
+      "dimensionType": "number",
+      "nullable": false,
+      "primaryKey": false,
+      "comment": "Share of sales (in euros) that customers returned. A 5% rate means\n5 cents of every euro sold came back as a return.\n"
+    },
+    {
+      "name": "avg_order_value",
+      "nativeType": "numeric",
+      "normalizedType": "numeric",
+      "dimensionType": "number",
+      "nullable": false,
+      "primaryKey": false,
+      "comment": "Average revenue per order. Answers \"how much does a typical customer\nspend in a single order, all items combined?\"\n"
+    },
+    {
+      "name": "gross_revenue",
+      "nativeType": "numeric",
+      "normalizedType": "numeric",
+      "dimensionType": "number",
+      "nullable": false,
+      "primaryKey": false,
+      "comment": "Total sales value before accounting for returns (SUM of sale_price,\nreturned items included at their original price).\n"
+    },
+    {
+      "name": "gross_margin",
+      "nativeType": "numeric",
+      "normalizedType": "numeric",
+      "dimensionType": "number",
+      "nullable": false,
+      "primaryKey": false,
+      "comment": "Total profit after item costs (SUM of per-line gross_margin,\nnet_revenue minus cost).\n"
+    },
+    {
+      "name": "returned_revenue",
+      "nativeType": "numeric",
+      "normalizedType": "numeric",
+      "dimensionType": "number",
+      "nullable": false,
+      "primaryKey": false,
+      "comment": "Sales value lost to returns (SUM of sale_price for returned items\nonly). Numerator of financial_return_rate.\n"
+    },
+    {
+      "name": "order_item_id",
+      "nativeType": "numeric",
+      "normalizedType": "numeric",
+      "dimensionType": "number",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "order_id",
+      "nativeType": "numeric",
+      "normalizedType": "numeric",
+      "dimensionType": "number",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "status",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "ordered_date",
+      "nativeType": "timestamp without time zone",
+      "normalizedType": "timestamp without time zone",
+      "dimensionType": "time",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "delivered_date",
+      "nativeType": "timestamp without time zone",
+      "normalizedType": "timestamp without time zone",
+      "dimensionType": "time",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "is_returned",
+      "nativeType": "boolean",
+      "normalizedType": "boolean",
+      "dimensionType": "boolean",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "is_delivered",
+      "nativeType": "boolean",
+      "normalizedType": "boolean",
+      "dimensionType": "boolean",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "products_category",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "products_brand",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "products_department",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "users_country",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "users_state",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "users_gender",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "users_traffic_source",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "orders_status",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "dates_year",
+      "nativeType": "numeric",
+      "normalizedType": "numeric",
+      "dimensionType": "number",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "dates_year_month",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": "YYYY-MM format (e.g., 2024-07)."
+    },
+    {
+      "name": "dates_year_quarter",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": "YYYY-Qn format (e.g., 2024-Q3)."
+    },
+    {
+      "name": "dates_is_weekend",
+      "nativeType": "boolean",
+      "normalizedType": "boolean",
+      "dimensionType": "boolean",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": null
+    },
+    {
+      "name": "__user",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": "Virtual column for security context switching"
+    },
+    {
+      "name": "__cubeJoinField",
+      "nativeType": "text",
+      "normalizedType": "text",
+      "dimensionType": "string",
+      "nullable": true,
+      "primaryKey": false,
+      "comment": "Virtual column for joining cubes"
+    }
+  ],
+  "foreignKeys": []
+}

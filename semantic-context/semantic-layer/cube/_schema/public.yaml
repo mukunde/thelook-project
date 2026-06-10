@@ -23,7 +23,7 @@ tables:
           db: |
             Profit margin as a percentage of revenue. A 30% rate means we keep
             30 cents of profit on every euro earned, after paying for the items.
-          ai: Profit percentage kept per euro of revenue after item costs.
+          ai: Profit percentage per euro earned after item costs.
       - name: financial_return_rate
         type: number
         nullable: false
@@ -31,7 +31,7 @@ tables:
           db: |
             Share of sales (in euros) that customers returned. A 5% rate means
             5 cents of every euro sold came back as a return.
-          ai: Percentage of sold euros returned by customers.
+          ai: Percentage of total sales value lost to customer returns.
       - name: avg_order_value
         type: number
         nullable: false
@@ -39,11 +39,43 @@ tables:
           db: |
             Average revenue per order. Answers "how much does a typical customer
             spend in a single order, all items combined?"
-          ai: Typical total spend per single customer order.
+          ai: Typical total spend per customer order.
+      - name: gross_revenue
+        type: number
+        nullable: false
+        descriptions:
+          db: |
+            Total sales value before accounting for returns (SUM of sale_price,
+            returned items included at their original price).
+          ai: Total sales value before deducting returns.
+      - name: gross_margin
+        type: number
+        nullable: false
+        descriptions:
+          db: |
+            Total profit after item costs (SUM of per-line gross_margin,
+            net_revenue minus cost).
+          ai: Total profit after subtracting item costs from net revenue.
+      - name: returned_revenue
+        type: number
+        nullable: false
+        descriptions:
+          db: |
+            Sales value lost to returns (SUM of sale_price for returned items
+            only). Numerator of financial_return_rate.
+          ai: Total sales value of returned items only.
+      - name: order_item_id
+        type: number
+        descriptions:
+          ai: Unique identifier for an individual order line item.
+      - name: order_id
+        type: number
+        descriptions:
+          ai: Identifier linking line items to a parent order.
       - name: status
         type: string
         descriptions:
-          ai: General status indicator for the record or order.
+          ai: Current fulfillment status of the order line item.
       - name: ordered_date
         type: time
         descriptions:
@@ -51,27 +83,27 @@ tables:
       - name: delivered_date
         type: time
         descriptions:
-          ai: Timestamp when the order was delivered to the customer.
+          ai: Timestamp when the order was delivered.
       - name: is_returned
         type: boolean
         descriptions:
-          ai: Flags whether the order line item was returned.
+          ai: Flags whether this line item was returned.
       - name: is_delivered
         type: boolean
         descriptions:
-          ai: Flags whether the order was successfully delivered.
+          ai: Flags whether this line item was delivered.
       - name: products_category
         type: string
         descriptions:
-          ai: Product category grouping for the sold item.
+          ai: Product category for grouping and filtering.
       - name: products_brand
         type: string
         descriptions:
-          ai: Brand of the sold product.
+          ai: Brand associated with the ordered product.
       - name: products_department
         type: string
         descriptions:
-          ai: Department classification of the sold product.
+          ai: Department classification of the ordered product.
       - name: users_country
         type: string
         descriptions:
@@ -91,7 +123,7 @@ tables:
       - name: orders_status
         type: string
         descriptions:
-          ai: Current fulfillment or processing status of the order.
+          ai: Overall status of the parent order.
       - name: dates_year
         type: number
         descriptions:
@@ -114,16 +146,16 @@ tables:
         type: string
         descriptions:
           db: Virtual column for security context switching
-          ai: Virtual column used for row-level security context switching.
+          ai: Virtual column used for row-level security context.
       - name: __cubeJoinField
         type: string
         descriptions:
           db: Virtual column for joining cubes
-          ai: Virtual column used internally for joining data cubes.
+          ai: Virtual column used internally for cube joins.
     descriptions:
       db: |
         Finance domain BI surface. Exposes the 4 canonical Finance measures
         (net_revenue, gross_margin_rate, financial_return_rate, avg_order_value)
         along with a curated set of dimensions for cohorting (time, geography,
         product taxonomy, order status).
-      ai: Financial performance metrics for orders, combining revenue, margins, returns, and customer/product dimensions.
+      ai: Finance analytics table combining order line items with revenue, margin, return metrics, and dimensional attributes for business reporting.
