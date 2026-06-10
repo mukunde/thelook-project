@@ -13,10 +13,12 @@ recomputing your own aggregations:
 
 - `total_net_revenue`: revenue actually kept. Returned items count as ZERO
   by construction (encoded in the dbt mart, not something to re-derive).
-- `gross_margin_rate`: SUM(gross_margin) / SUM(net_revenue), computed on
-  aggregated sums.
-- `financial_return_rate`: SUM(returned_revenue) / SUM(gross_revenue).
-- `avg_order_value`: SUM(net_revenue) / COUNT(DISTINCT order_id).
+- `gross_margin_ratio`: SUM(gross_margin) / SUM(net_revenue), computed on
+  aggregated sums. (Named gross_margin_rate in the BI layer.)
+- `financial_return_ratio`: SUM(returned_revenue) / SUM(gross_revenue).
+  (Named financial_return_rate in the BI layer.)
+- `average_order_value`: SUM(net_revenue) / COUNT(DISTINCT order_id).
+  (Named avg_order_value in the BI layer.)
 
 ## Never average rate columns
 
@@ -28,7 +30,7 @@ use the predefined ratio measures, which recompose from additive sums.
 
 ## Returns: two different questions, two different rates
 
-- "How much money do returns cost us?" is `financial_return_rate`
+- "How much money do returns cost us?" is `financial_return_ratio`
   (value-weighted, in euros). Its numerator uses the ORIGINAL sale_price of
   returned items, because their net_revenue is zero by construction (a
   net_revenue-based numerator would always be 0).
