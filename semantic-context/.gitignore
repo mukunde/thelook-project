@@ -1,0 +1,12 @@
+# ─── KTX local state (never commit) ─────────────────────────
+# Secrets (API keys, warehouse password), sqlite state/search indexes,
+# caches, runtime daemon files, and generated agent bundles. A fresh
+# clone rebuilds all of this with `ktx setup` + `ktx admin runtime install`.
+.ktx/
+
+# ─── Scan snapshots and enrichment artifacts ─────────────────
+# Regenerable via `ktx scan`. Contains timestamped directories that grow
+# unbounded with every scan, plus embeddings.json (tens of thousands of
+# lines of floats, ~$0.001 to regenerate via OpenAI embeddings). The
+# curated output lives in semantic-layer/ and wiki/, which ARE versioned.
+raw-sources/

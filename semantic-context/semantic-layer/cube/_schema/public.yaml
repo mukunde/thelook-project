@@ -1,0 +1,129 @@
+tables:
+  finance:
+    table: public.finance
+    columns:
+      - name: count
+        type: number
+        nullable: false
+        descriptions:
+          db: Total number of item lines across orders, including returned items.
+          ai: Total order line items including returned ones.
+      - name: net_revenue
+        type: number
+        nullable: false
+        descriptions:
+          db: |
+            Total revenue from items sold. Returned items count as zero, so this is
+            the actual money the business kept.
+          ai: Actual revenue retained after excluding returned items.
+      - name: gross_margin_rate
+        type: number
+        nullable: false
+        descriptions:
+          db: |
+            Profit margin as a percentage of revenue. A 30% rate means we keep
+            30 cents of profit on every euro earned, after paying for the items.
+          ai: Profit percentage kept per euro of revenue after item costs.
+      - name: financial_return_rate
+        type: number
+        nullable: false
+        descriptions:
+          db: |
+            Share of sales (in euros) that customers returned. A 5% rate means
+            5 cents of every euro sold came back as a return.
+          ai: Percentage of sold euros returned by customers.
+      - name: avg_order_value
+        type: number
+        nullable: false
+        descriptions:
+          db: |
+            Average revenue per order. Answers "how much does a typical customer
+            spend in a single order, all items combined?"
+          ai: Typical total spend per single customer order.
+      - name: status
+        type: string
+        descriptions:
+          ai: General status indicator for the record or order.
+      - name: ordered_date
+        type: time
+        descriptions:
+          ai: Timestamp when the order was placed.
+      - name: delivered_date
+        type: time
+        descriptions:
+          ai: Timestamp when the order was delivered to the customer.
+      - name: is_returned
+        type: boolean
+        descriptions:
+          ai: Flags whether the order line item was returned.
+      - name: is_delivered
+        type: boolean
+        descriptions:
+          ai: Flags whether the order was successfully delivered.
+      - name: products_category
+        type: string
+        descriptions:
+          ai: Product category grouping for the sold item.
+      - name: products_brand
+        type: string
+        descriptions:
+          ai: Brand of the sold product.
+      - name: products_department
+        type: string
+        descriptions:
+          ai: Department classification of the sold product.
+      - name: users_country
+        type: string
+        descriptions:
+          ai: Country of the customer who placed the order.
+      - name: users_state
+        type: string
+        descriptions:
+          ai: State or region of the customer.
+      - name: users_gender
+        type: string
+        descriptions:
+          ai: Gender of the customer.
+      - name: users_traffic_source
+        type: string
+        descriptions:
+          ai: Marketing channel that acquired the customer.
+      - name: orders_status
+        type: string
+        descriptions:
+          ai: Current fulfillment or processing status of the order.
+      - name: dates_year
+        type: number
+        descriptions:
+          ai: Year extracted from the order date.
+      - name: dates_year_month
+        type: string
+        descriptions:
+          db: YYYY-MM format (e.g., 2024-07).
+          ai: Year and month in YYYY-MM format.
+      - name: dates_year_quarter
+        type: string
+        descriptions:
+          db: YYYY-Qn format (e.g., 2024-Q3).
+          ai: Year and quarter in YYYY-Qn format.
+      - name: dates_is_weekend
+        type: boolean
+        descriptions:
+          ai: Flags whether the order was placed on a weekend.
+      - name: __user
+        type: string
+        descriptions:
+          db: Virtual column for security context switching
+          ai: Virtual column used for row-level security context switching.
+      - name: __cubeJoinField
+        type: string
+        descriptions:
+          db: Virtual column for joining cubes
+          ai: Virtual column used internally for joining data cubes.
+    descriptions:
+      db: |
+        Finance domain BI surface. Exposes the 4 canonical Finance measures
+        (net_revenue, gross_margin_rate, financial_return_rate, avg_order_value)
+        along with a curated set of dimensions for cohorting (time, geography,
+        product taxonomy, order status).
+      ai: Financial performance metrics for orders, combining revenue, margins, returns, and customer/product dimensions.
