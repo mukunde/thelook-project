@@ -1,0 +1,5 @@
+# KTX scan snapshots are machine-generated (schema dumps, LLM enrichment,
+# embedding vectors). Mark them as generated so GitHub collapses them in
+# PR diffs and excludes them from language statistics, the same treatment
+# as lockfiles. They stay versioned for context reproducibility (ADR-0013).
+raw-sources/** linguist-generated=true

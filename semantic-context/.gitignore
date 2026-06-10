@@ -4,9 +4,10 @@
 # clone rebuilds all of this with `ktx setup` + `ktx admin runtime install`.
 .ktx/
 
-# ─── Scan snapshots and enrichment artifacts ─────────────────
-# Regenerable via `ktx scan`. Contains timestamped directories that grow
-# unbounded with every scan, plus embeddings.json (tens of thousands of
-# lines of floats, ~$0.001 to regenerate via OpenAI embeddings). The
-# curated output lives in semantic-layer/ and wiki/, which ARE versioned.
-raw-sources/
+# Note on raw-sources/: KTX versions its scan snapshots by design (the
+# ingest pipeline batch-commits them; context reproducibility is the
+# product's core contract, and there is no flag to disable it). They are
+# therefore NOT ignored. Guardrails instead: ingest runs happen on
+# feature branches (never on main), and .gitattributes marks the
+# snapshots as linguist-generated so GitHub collapses them in PR diffs.
+# See ADR-0013.
