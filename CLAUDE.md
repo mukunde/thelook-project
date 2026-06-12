@@ -92,3 +92,4 @@ Rules:
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- `graphify-out/` is gitignored (regenerable, auto-rebuilt by the post-commit hook). At each milestone (jalon), publish the report to GitHub with `git add -f graphify-out/GRAPH_REPORT.md` so a repo visitor can read the architecture audit without rebuilding. After a doc-heavy change (new ADR, wiki page), prefer a full `/graphify .` (or `/graphify . --update`) before force-adding, since `graphify update .` is AST-only and will not pick up new prose concepts.
