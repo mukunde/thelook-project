@@ -27,6 +27,10 @@ Below: the `finance` view consumed across **four surfaces** with identical value
 
 ![Metabase chart of the same finance view consumed via Cube SQL API: same Net Revenue values per category and year-month](docs/screenshots/metabase-finance-chart.png)
 
+Beyond identical numbers, the KTX context layer gives AI agents the business context no schema carries. Asked about a metric for 2022, the agent does not invent a figure or report "missing data": it explains the data starts on 2023-01-01 by design (the analytical-horizon wiki page), the kind of guardrail that separates a trustable agent from a plausible-sounding one.
+
+![KTX agent declining to invent 2022 figures, citing the 2023-01-01 analytical horizon as a deliberate design choice](docs/screenshots/ktx-agent-horizon-2022.png)
+
 ---
 
 ## Finance domain status
