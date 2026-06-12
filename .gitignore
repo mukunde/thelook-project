@@ -162,6 +162,12 @@ docs/TODO/
 # ─── Claude Code (AI assistant worktrees + local config) ─
 .claude/
 
+# ─── graphify knowledge graph (regenerable, auto-rebuilt by post-commit hook) ─
+# Local-only: the graph is rebuilt from the corpus on demand and kept current
+# by the post-commit hook, so versioning a snapshot would churn on every commit.
+# To publish a milestone report on GitHub, force-add it: git add -f graphify-out/GRAPH_REPORT.md
+graphify-out/
+
 # ─── direnv ──────────────────────────────────────────────
 .envrc
 .direnv/

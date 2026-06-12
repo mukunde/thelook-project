@@ -1,0 +1,50 @@
+# --- dbt ---
+target/
+dbt_packages/
+logs/
+package-lock.yml
+
+# --- Python / Dagster ---
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.dagster/
+tmp*/
+
+# --- Terraform ---
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# --- Evidence.dev / Node ---
+node_modules/
+.evidence/
+.svelte-kit/
+build/
+dist/
+
+# --- KTX context layer: generated scan snapshots (not authored knowledge) ---
+# Mirrors the .gitattributes linguist-generated decision (ADR-0013): machine
+# generated schema dumps, LLM enrichment, and embedding vectors must not
+# pollute the knowledge graph. The authored KTX context (semantic-layer/
+# overlay + wiki/) is kept and indexed.
+semantic-context/raw-sources/
+semantic-context/.ktx/
+
+# --- AI assistant tooling (not project knowledge) ---
+# graphify's own skill reference docs and other assistant scaffolding would
+# pollute a data-stack knowledge graph with tooling-internal concepts.
+.claude/skills/
+.claude/worktrees/
+
+# --- Divers ---
+.git/
+.github/
+graphify-out/
+*.log
+*.duckdb
+*.parquet
+*.csv

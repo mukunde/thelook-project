@@ -82,3 +82,13 @@ Terraform runs through Terraform Cloud (VCS-driven on push). No local `terraform
 - **Commits**: conventional-commit titles (`docs:`, `feat(scope):`, `fix(scope):`, etc.). Body stays concise (1 short sentence) unless extra context is genuinely needed for review.
 - **ADRs**: every non-trivial structural decision is recorded in `docs/ADR/` before code is written. Use [docs/ADR/template.md](docs/ADR/template.md).
 - **Branches & PRs**: feature branches off `main`, PR review even for single-operator changes (forces explicit recording of intent).
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
