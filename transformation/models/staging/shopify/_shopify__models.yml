@@ -78,6 +78,20 @@ models:
       contract:
         enforced: true
 
+    # Freshness guard (severity warn, not error: in the demo-on-demand
+    # operating model the warehouse can legitimately sit idle between
+    # active periods). Completeness guards live as singular tests in
+    # tests/assert_order_items_*.sql at ERROR severity, because a
+    # truncated history is never legitimate.
+    data_tests:
+      - dbt_utils.recency:
+          arguments:
+            datepart: day
+            field: ordered_at
+            interval: 14
+          config:
+            severity: warn
+
     columns:
       - name: order_item_id
         description: Surrogate primary key of the order item, renamed from source `id`.
