@@ -2,7 +2,7 @@
 
 ## What this project is
 
-`thelook-mds` is a personal modern data stack portfolio project. BigQuery TheLook -> Snowflake (RAW + ANALYTICS) via dlt and dbt, semantic layer on Cube Cloud, BI on Evidence + Metabase, orchestrated by Dagster on OCI Free Tier. Single operator (Gaël Mukunde). €0 TCO. Phase 1 (Infrastructure & Governance) is closed; Phase 2 (data engineering) is in progress.
+`thelook-mds` is a personal modern data stack portfolio project. BigQuery TheLook -> Snowflake (RAW + ANALYTICS) via dlt and dbt, semantic layer on Cube Cloud, BI on Metabase, orchestrated by Dagster on OCI Free Tier. Single operator (Gaël Mukunde). €0 TCO. Phase 1 (Infrastructure & Governance) is closed; Phase 2 (data engineering) is in progress.
 
 Architecture principle: **Code-First**. Every component is declared as code under Git, regardless of language. Python is the tactical default where the language is debatable (ingestion, orchestration, notebooks). See [docs/ADR/](docs/ADR/) and [docs/infrastructure-and-governance-phase-report.md](docs/infrastructure-and-governance-phase-report.md).
 
@@ -17,7 +17,7 @@ Architecture principle: **Code-First**. Every component is declared as code unde
 ├── ingestion/            # dlt pipelines (uv workspace member). Sprint 1: users only.
 ├── transformation/       # dbt project (uv workspace member). Sprint 1: stg_segment__users.
 ├── docs/
-│   ├── ADR/              # 10 ADRs (0000-0009)
+│   ├── ADR/              # 15 ADRs (0000-0014)
 │   └── infrastructure-and-governance-phase-report.md
 ├── pyproject.toml        # root tooling (ruff, mypy, pytest) + uv workspace
 ├── uv.lock
@@ -73,7 +73,7 @@ Terraform runs through Terraform Cloud (VCS-driven on push). No local `terraform
 
 - **High-level positioning**: [README.md](README.md)
 - **Phase 1 outcomes + lessons**: [docs/infrastructure-and-governance-phase-report.md](docs/infrastructure-and-governance-phase-report.md)
-- **Structural decisions and trade-offs**: [docs/ADR/](docs/ADR/) (ADR-0000 to ADR-0009)
+- **Structural decisions and trade-offs**: [docs/ADR/](docs/ADR/) (ADR-0000 to ADR-0014)
 - **Snowflake RBAC + databases + warehouses**: [infra/terraform/snowflake/](infra/terraform/snowflake/)
 - **Current sprint work**: check `ingestion/`, `transformation/`, etc. (new dirs added per Jalon A sub-step)
 

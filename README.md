@@ -87,7 +87,7 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply)
 - **Infrastructure-as-Code** for everything provisionable — Snowflake warehouses and RBAC are declared with the same discipline as the OCI VM.
 - **Single analytic engine** — Snowflake only, with no DuckDB mirror and no Oracle Autonomous Database (ADB) fallback. See [ADR-0006](docs/ADR/0006-single-analytic-engine-snowflake.md).
 - **Always-on platform, demo-on-demand warehouse** — Dagster + Metabase run permanently on OCI Free Tier at €0; Snowflake is `terraform apply`-ed for active periods and `terraform destroy`-ed afterwards.
-- **Documented decisions** — [ten ADRs](docs/ADR/) capture the structuring choices with their trade-offs, plus a [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md) consolidating the infrastructure and governance work.
+- **Documented decisions** — [fifteen ADRs](docs/ADR/) capture the structuring choices with their trade-offs, plus a [Phase 1 closure report](docs/infrastructure-and-governance-phase-report.md) consolidating the infrastructure and governance work.
 
 ## Stack at a glance
 
@@ -121,7 +121,7 @@ CI/CD: GitHub Actions (lint + state-based dbt build + Terraform plan/apply)
 ├── semantic/                                      ← Cube semantic layer (cubes + finance view), auto-deployed to Cube Cloud
 ├── semantic-context/                              ← KTX context layer for AI agents (semantic overlay + wiki + MCP)
 ├── docs/
-│   ├── ADR/                                       ← Architecture Decision Records (ADR-0000 to ADR-0013)
+│   ├── ADR/                                       ← Architecture Decision Records (ADR-0000 to ADR-0014)
 │   ├── screenshots/                               ← metric-unicity demo captures (Cube Explore, Metabase)
 │   └── infrastructure-and-governance-phase-report.md   ← Phase 1 closure report
 ├── infra/
@@ -373,6 +373,7 @@ Metabase dashboards keep their last-successful-query results cached, so the live
 | [ADR-0011](docs/ADR/0011-cube-modeling-conventions-finance.md) | Cube modeling conventions for the Finance domain (Strict Kimball reflection, single grain, view-only) |
 | [ADR-0012](docs/ADR/0012-replace-evidence-with-metabase-oss.md) | Replace Evidence with Metabase OSS, refine Code-First scope for self-service BI |
 | [ADR-0013](docs/ADR/0013-ktx-context-layer-for-ai-agents.md) | KTX context layer wrapping Cube for AI agent consumption (MCP) |
+| [ADR-0014](docs/ADR/0014-keep-semantic-layer-in-cube-not-snowflake-views.md) | Keep the semantic layer in Cube, not in Snowflake Semantic Views / Cortex Analyst (placement decision extending ADR-0007) |
 
 ## Phase reports
 
