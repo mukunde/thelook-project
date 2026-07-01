@@ -1,0 +1,6 @@
+name: avg_order_value
+prompt: What is the average order value (net revenue per distinct order)?
+sql: |
+  SELECT
+    SUM(net_revenue) / NULLIF(COUNT(DISTINCT order_id), 0) AS avg_order_value
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS

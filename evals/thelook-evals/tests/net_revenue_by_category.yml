@@ -1,0 +1,12 @@
+# Rule: net revenue per product category, returns excluded by construction.
+# Dimension aliased to the view name (products_category). Multi-row: ORDER BY.
+name: net_revenue_by_category
+prompt: What is net revenue by product category?
+sql: |
+  SELECT
+    p.category AS products_category,
+    SUM(f.net_revenue) AS net_revenue
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  JOIN ANALYTICS.MARTS.DIM_PRODUCTS p ON f.product_id = p.product_id
+  GROUP BY p.category
+  ORDER BY p.category

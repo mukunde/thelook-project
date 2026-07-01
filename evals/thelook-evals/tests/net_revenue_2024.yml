@@ -1,0 +1,8 @@
+# Rule: net revenue filtered to a valid analytical year (2024 is inside the
+# 2023-01-01 horizon). Scalar.
+name: net_revenue_2024
+prompt: What is the total net revenue in 2024?
+sql: |
+  SELECT SUM(net_revenue) AS net_revenue_2024
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS
+  WHERE YEAR(ordered_date) = 2024

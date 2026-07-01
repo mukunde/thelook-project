@@ -1,0 +1,13 @@
+# Rule: ranking on the value-weighted return rate. Highest wins. Returns a single
+# category name, aliased to the view name (products_category). Harder: multi-step.
+name: most_returned_category_by_value
+prompt: Which product category has the highest value-weighted return rate?
+sql: |
+  SELECT p.category AS products_category
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  JOIN ANALYTICS.MARTS.DIM_PRODUCTS p ON f.product_id = p.product_id
+  GROUP BY p.category
+  ORDER BY
+    SUM(CASE WHEN f.status = 'Returned' THEN f.sale_price ELSE 0 END)
+      / NULLIF(SUM(f.sale_price), 0) DESC
+  LIMIT 1

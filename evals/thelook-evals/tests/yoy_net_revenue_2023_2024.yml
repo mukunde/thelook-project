@@ -1,0 +1,12 @@
+# Rule: horizon-aware year over year. 2023 vs 2024 is the first valid pair (2022
+# has no data). Dimension aliased to the view name (dates_year). Two rows. Harder.
+name: yoy_net_revenue_2023_2024
+prompt: What is net revenue for 2023 and 2024 (year over year)?
+sql: |
+  SELECT
+    YEAR(f.ordered_date) AS dates_year,
+    SUM(f.net_revenue) AS net_revenue
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  WHERE YEAR(f.ordered_date) IN (2023, 2024)
+  GROUP BY dates_year
+  ORDER BY dates_year

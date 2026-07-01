@@ -1,0 +1,14 @@
+# Rule: value-weighted return rate by category. Numerator uses the ORIGINAL
+# sale_price of returned lines (their net_revenue is 0 by construction). Decimal
+# fraction. Dimension aliased to the view name (products_category). Multi-row.
+name: financial_return_rate_by_category
+prompt: What is the value-weighted return rate by product category, as a decimal fraction?
+sql: |
+  SELECT
+    p.category AS products_category,
+    SUM(CASE WHEN f.status = 'Returned' THEN f.sale_price ELSE 0 END)
+      / NULLIF(SUM(f.sale_price), 0) AS financial_return_rate
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  JOIN ANALYTICS.MARTS.DIM_PRODUCTS p ON f.product_id = p.product_id
+  GROUP BY p.category
+  ORDER BY p.category

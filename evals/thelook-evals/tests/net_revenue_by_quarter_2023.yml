@@ -1,0 +1,12 @@
+# Rule: net revenue at the quarter grain for 2023. Dimension aliased to the view
+# name (dates_year_quarter), 'YYYY-Qn'. Multi-row: ORDER BY.
+name: net_revenue_by_quarter_2023
+prompt: What is net revenue per quarter in 2023?
+sql: |
+  SELECT
+    YEAR(f.ordered_date) || '-Q' || QUARTER(f.ordered_date) AS dates_year_quarter,
+    SUM(f.net_revenue) AS net_revenue
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  WHERE YEAR(f.ordered_date) = 2023
+  GROUP BY dates_year_quarter
+  ORDER BY dates_year_quarter

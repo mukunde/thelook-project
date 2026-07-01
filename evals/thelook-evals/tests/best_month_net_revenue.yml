@@ -1,0 +1,10 @@
+# Rule: ranking over a monthly series. Returns the single month with the highest
+# net revenue, aliased to the view name (dates_year_month). Harder: multi-step.
+name: best_month_net_revenue
+prompt: Which calendar month had the highest net revenue?
+sql: |
+  SELECT TO_CHAR(f.ordered_date, 'YYYY-MM') AS dates_year_month
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  GROUP BY dates_year_month
+  ORDER BY SUM(f.net_revenue) DESC
+  LIMIT 1

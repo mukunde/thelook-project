@@ -1,0 +1,5 @@
+name: total_net_revenue
+prompt: What is the total net revenue across all orders?
+sql: |
+  SELECT SUM(net_revenue) AS total_net_revenue
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS

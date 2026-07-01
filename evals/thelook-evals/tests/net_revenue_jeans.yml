@@ -1,0 +1,11 @@
+# Rule: net revenue reported per category via a join to dim_products, returns
+# excluded by construction (net_revenue is 0 for returned lines). Single-category
+# form keeps the comparison robust (one value, no row-order issues); see the
+# README for the multi-row by-category breakdown pattern.
+name: net_revenue_jeans
+prompt: What is the net revenue for the Jeans product category?
+sql: |
+  SELECT SUM(f.net_revenue) AS net_revenue
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  JOIN ANALYTICS.MARTS.DIM_PRODUCTS p ON f.product_id = p.product_id
+  WHERE p.category = 'Jeans'

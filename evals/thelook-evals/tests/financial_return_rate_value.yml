@@ -1,0 +1,7 @@
+name: financial_return_rate_value
+prompt: What share of sales value did customers return (the value-weighted return rate)?
+sql: |
+  SELECT
+    SUM(CASE WHEN status = 'Returned' THEN sale_price ELSE 0 END)
+      / NULLIF(SUM(sale_price), 0) AS financial_return_rate
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS

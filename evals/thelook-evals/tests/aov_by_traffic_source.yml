@@ -1,0 +1,12 @@
+# Rule: average order value (order grain) by acquisition channel (join dim_users).
+# Dimension aliased to the view name (users_traffic_source). Multi-row: ORDER BY.
+name: aov_by_traffic_source
+prompt: What is the average order value by traffic source?
+sql: |
+  SELECT
+    u.traffic_source AS users_traffic_source,
+    SUM(f.net_revenue) / NULLIF(COUNT(DISTINCT f.order_id), 0) AS avg_order_value
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  JOIN ANALYTICS.MARTS.DIM_USERS u ON f.user_id = u.user_id
+  GROUP BY u.traffic_source
+  ORDER BY u.traffic_source

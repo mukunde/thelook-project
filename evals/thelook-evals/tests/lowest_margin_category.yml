@@ -1,0 +1,12 @@
+# Rule: ranking on a correctly computed rate. Lowest gross margin rate wins; the
+# rate is SUM(gross_margin) / SUM(net_revenue), not a row average. Returns a
+# single category name, aliased to the view name (products_category). Harder.
+name: lowest_margin_category
+prompt: Which product category has the lowest gross margin rate?
+sql: |
+  SELECT p.category AS products_category
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  JOIN ANALYTICS.MARTS.DIM_PRODUCTS p ON f.product_id = p.product_id
+  GROUP BY p.category
+  ORDER BY SUM(f.gross_margin) / NULLIF(SUM(f.net_revenue), 0) ASC
+  LIMIT 1

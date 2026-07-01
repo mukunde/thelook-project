@@ -1,0 +1,7 @@
+# Rule: net revenue restricted to delivered lines (is_delivered = true). Scalar.
+name: delivered_net_revenue
+prompt: What is net revenue for delivered items only?
+sql: |
+  SELECT SUM(net_revenue) AS delivered_net_revenue
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS
+  WHERE is_delivered

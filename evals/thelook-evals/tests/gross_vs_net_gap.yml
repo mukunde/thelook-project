@@ -1,0 +1,8 @@
+# Rule: gross revenue includes returns (sale_price of every line), net revenue
+# excludes them (0 on returned lines). The gap equals the value of returns, so
+# this should match returned_revenue_total. Scalar, consistency check.
+name: gross_vs_net_gap
+prompt: What is the gap between gross revenue and net revenue (the value of returns)?
+sql: |
+  SELECT SUM(sale_price) - SUM(net_revenue) AS gross_vs_net_gap
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS
