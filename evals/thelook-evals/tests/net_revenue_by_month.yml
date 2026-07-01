@@ -1,0 +1,12 @@
+# Rule: net revenue at the month grain, returns excluded by construction.
+# The view's dates_year_month renders as a first-of-month DATE, so DATE_TRUNC
+# matches the agent's output (a 'YYYY-MM' string does not). Multi-row.
+name: net_revenue_by_month
+prompt: What is net revenue by calendar month?
+sql: |
+  SELECT
+    DATE_TRUNC('month', f.ordered_date) AS dates_year_month,
+    SUM(f.net_revenue) AS net_revenue
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  GROUP BY dates_year_month
+  ORDER BY dates_year_month

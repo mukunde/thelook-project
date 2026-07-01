@@ -1,0 +1,7 @@
+# Rule: analytical horizon boundary. The earliest order date is 2023-01-01 by
+# design. Scalar (a date).
+name: earliest_order_date
+prompt: What is the earliest order date in the data?
+sql: |
+  SELECT MIN(ordered_date) AS earliest_order_date
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS

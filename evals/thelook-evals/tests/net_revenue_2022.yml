@@ -1,0 +1,10 @@
+# Rule: analytical horizon. Data starts 2023-01-01, so a 2022 query must return
+# NOTHING. The GROUP BY makes the result empty when there are no 2022 rows, which
+# matches the correct governed behavior (the agent returns empty, not a forced 0).
+name: net_revenue_2022
+prompt: What was net revenue in 2022?
+sql: |
+  SELECT SUM(net_revenue) AS net_revenue_2022
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS
+  WHERE YEAR(ordered_date) = 2022
+  GROUP BY YEAR(ordered_date)

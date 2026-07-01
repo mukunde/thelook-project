@@ -1,0 +1,10 @@
+# Rule: never average a rate. Gross margin rate must come from summed components
+# (SUM(gross_margin) / SUM(net_revenue)), not from averaging the per-row rate
+# column (which would weight a 1-dollar line like a 1000-dollar line). KTX hides
+# the per-row rate column on purpose, so the agent must use the ratio measure.
+# Expressed as a decimal fraction to keep units consistent across the rate tests.
+name: gross_margin_rate
+prompt: What is the overall gross margin rate, expressed as a decimal fraction between 0 and 1?
+sql: |
+  SELECT SUM(gross_margin) / NULLIF(SUM(net_revenue), 0) AS gross_margin_rate
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS

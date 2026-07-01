@@ -180,3 +180,12 @@ temp/
 *.tmp
 *.bak
 *.orig
+
+# nao eval harness: nao_config.yaml carries the LLM key and personal key paths; commit a sanitized nao_config.yaml.example instead
+evals/thelook-evals/nao_config.yaml
+
+# nao eval harness: live MCP config carries a personal absolute path; commit mcp.json.example instead
+evals/thelook-evals/agent/mcps/mcp.json
+
+# nao eval harness: run artifacts (results JSONs)
+evals/thelook-evals/tests/outputs/

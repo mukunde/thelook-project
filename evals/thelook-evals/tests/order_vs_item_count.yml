@@ -1,0 +1,7 @@
+# Rule: distinct orders, not line items. Guards against confusing order_count
+# with item_count (a single order can hold many lines). Scalar.
+name: order_vs_item_count
+prompt: How many distinct orders are there (not line items)?
+sql: |
+  SELECT COUNT(DISTINCT order_id) AS order_count
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS

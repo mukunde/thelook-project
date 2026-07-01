@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ktx": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "export PATH=\"$HOME/.local/bin:$PATH\" && source ~/.nvm/nvm.sh && ktx --project-dir \"${KTX_PROJECT_DIR}\" mcp stdio"
+      ]
+    }
+  }
+}

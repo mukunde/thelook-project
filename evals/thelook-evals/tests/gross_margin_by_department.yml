@@ -1,0 +1,12 @@
+# Rule: total gross margin amount (additive) by department (join dim_products).
+# Dimension aliased to the view name (products_department). Multi-row: ORDER BY.
+name: gross_margin_by_department
+prompt: What is the total gross margin amount by department?
+sql: |
+  SELECT
+    p.department AS products_department,
+    SUM(f.gross_margin) AS gross_margin
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  JOIN ANALYTICS.MARTS.DIM_PRODUCTS p ON f.product_id = p.product_id
+  GROUP BY p.department
+  ORDER BY p.department

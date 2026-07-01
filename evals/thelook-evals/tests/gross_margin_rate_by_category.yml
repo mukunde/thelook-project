@@ -1,0 +1,13 @@
+# Rule: never average a rate, at the category grain. Margin rate per category is
+# SUM(gross_margin) / SUM(net_revenue), not the average of per-row rates. Decimal
+# fraction. Dimension aliased to the view name (products_category). Multi-row.
+name: gross_margin_rate_by_category
+prompt: What is the gross margin rate by product category, as a decimal fraction?
+sql: |
+  SELECT
+    p.category AS products_category,
+    SUM(f.gross_margin) / NULLIF(SUM(f.net_revenue), 0) AS gross_margin_rate
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  JOIN ANALYTICS.MARTS.DIM_PRODUCTS p ON f.product_id = p.product_id
+  GROUP BY p.category
+  ORDER BY p.category

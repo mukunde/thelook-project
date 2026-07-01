@@ -1,0 +1,13 @@
+# Rule: average order value per segment at the ORDER grain (net_revenue over
+# distinct orders), by gender (join dim_users). Dimension aliased to the view
+# name (users_gender). Multi-row: ORDER BY.
+name: aov_by_gender
+prompt: What is the average order value by customer gender?
+sql: |
+  SELECT
+    u.gender AS users_gender,
+    SUM(f.net_revenue) / NULLIF(COUNT(DISTINCT f.order_id), 0) AS avg_order_value
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  JOIN ANALYTICS.MARTS.DIM_USERS u ON f.user_id = u.user_id
+  GROUP BY u.gender
+  ORDER BY u.gender

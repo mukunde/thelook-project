@@ -1,0 +1,7 @@
+name: return_rate_volume
+prompt: What is the volume return rate, the share of line items returned, expressed as a decimal fraction between 0 and 1?
+sql: |
+  SELECT
+    SUM(CASE WHEN is_returned THEN 1 ELSE 0 END)
+      / NULLIF(COUNT(*), 0) AS volume_return_rate
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS

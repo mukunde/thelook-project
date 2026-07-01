@@ -1,0 +1,12 @@
+# Rule: net revenue by customer country (join dim_users), returns excluded.
+# Dimension aliased to the view name (users_country). Multi-row: ORDER BY.
+name: net_revenue_by_country
+prompt: What is net revenue by customer country?
+sql: |
+  SELECT
+    u.country AS users_country,
+    SUM(f.net_revenue) AS net_revenue
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS f
+  JOIN ANALYTICS.MARTS.DIM_USERS u ON f.user_id = u.user_id
+  GROUP BY u.country
+  ORDER BY u.country

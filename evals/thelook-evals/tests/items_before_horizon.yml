@@ -1,0 +1,12 @@
+# Rule: analytical horizon. Data starts on 2023-01-01 by design, so there are no
+# line items before it; the expected value is 0. This probes that the agent,
+# querying the horizon-filtered marts, reports the absence correctly rather than
+# inventing pre-2023 figures. A richer variant asserts the boundary directly:
+# prompt "What is the earliest order date?" with golden SELECT MIN(ordered_date)
+# (expected 2023-01-01).
+name: items_before_horizon
+prompt: How many order line items are recorded before 2023-01-01?
+sql: |
+  SELECT COUNT(*) AS items_before_2023
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS
+  WHERE ordered_date < '2023-01-01'

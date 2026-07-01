@@ -1,0 +1,7 @@
+# Rule: total sales value lost to returns = sum of the original sale_price of
+# returned lines (returned_revenue). Scalar.
+name: returned_revenue_total
+prompt: What is the total sales value lost to returns?
+sql: |
+  SELECT SUM(CASE WHEN status = 'Returned' THEN sale_price ELSE 0 END) AS returned_revenue
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS

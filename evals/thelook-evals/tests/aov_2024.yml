@@ -1,0 +1,7 @@
+# Rule: average order value (order grain) filtered to 2024. Scalar.
+name: aov_2024
+prompt: What is the average order value in 2024?
+sql: |
+  SELECT SUM(net_revenue) / NULLIF(COUNT(DISTINCT order_id), 0) AS avg_order_value
+  FROM ANALYTICS.MARTS.FCT_ORDER_ITEMS
+  WHERE YEAR(ordered_date) = 2024

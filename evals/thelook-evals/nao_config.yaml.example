@@ -1,0 +1,30 @@
+# Example nao config. Copy to nao_config.yaml and fill in the local values.
+# The real nao_config.yaml is gitignored: it carries the Anthropic API key and a
+# personal private-key path, neither of which belongs in version control.
+
+project_name: thelook-evals
+databases:
+- type: snowflake
+  name: snowflake-prod
+  include: []
+  exclude: []
+  exclude_columns: []
+  templates:
+  - columns
+  - how_to_use
+  - preview
+  query_history_exclude_patterns: []
+  profiling:
+    refresh_policy: always
+    interval_days: 7
+  username: USER_CUBE                      # read-only consumer (ROLE_ANALYST_FINANCE)
+  account_id: <snowflake-account-id>       # format orgname-accountname
+  database: ANALYTICS
+  schema_name: MARTS
+  warehouse: CONSUMER_WH
+  private_key_path: <absolute-path-to>/cube_rsa_key.p8
+repos: []
+llm:
+  provider: anthropic
+  api_key: <ANTHROPIC_API_KEY>             # never commit a real key
+  annotation_model: claude-3-5-sonnet-latest
